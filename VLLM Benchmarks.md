@@ -12,7 +12,7 @@ The following settings were used to launch the vllm server for each model. Thusf
 ```bash
 vllm serve <model> \
         --swap-space 16 \
-        --gpu-memory-utilization 0.97 \
+        --gpu-memory-utilization 0.98 \
         --guided-decoding-backend outlines \
         --max-model-len 32768 \
         --tensor-parallel-size 4 \
@@ -21,7 +21,34 @@ vllm serve <model> \
         --kv-cache-dtype fp8
 ```
 ```bash
-python benchmarks/benchmark_serving.py --dataset-name=random --model <model>
+python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
+```
+
+## Cogito v1 Preview Qwen 32B GPTQ 8 bit
+* btbtyler09/cogito-v1-preview-qwen-32B-gptq-8bit
+* --max-concurrency 18
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     1000      
+Benchmark duration (s):                  1488.41   
+Total input tokens:                      1024000   
+Total generated tokens:                  126605    
+Request throughput (req/s):              0.67      
+Output token throughput (tok/s):         85.06     
+Total Token throughput (tok/s):          773.04    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          11258.26  
+Median TTFT (ms):                        11539.83  
+P99 TTFT (ms):                           13924.52  
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          125.05    
+Median TPOT (ms):                        119.65    
+P99 TPOT (ms):                           207.67    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           123.53    
+Median ITL (ms):                         112.49    
+P99 ITL (ms):                            125.29    
+==================================================
 ```
 
 ## Gemma 3 27b
@@ -53,23 +80,23 @@ P99 ITL (ms):                            20693.33
 ```
 ============ Serving Benchmark Result ============
 Successful requests:                     1000      
-Benchmark duration (s):                  277.88    
+Benchmark duration (s):                  201.59    
 Total input tokens:                      1024000   
-Total generated tokens:                  120784    
-Request throughput (req/s):              3.60      
-Output token throughput (tok/s):         434.67    
-Total Token throughput (tok/s):          4119.74   
+Total generated tokens:                  120912    
+Request throughput (req/s):              4.96      
+Output token throughput (tok/s):         599.78    
+Total Token throughput (tok/s):          5679.34   
 ---------------Time to First Token----------------
-Mean TTFT (ms):                          125772.36 
-Median TTFT (ms):                        115250.72 
-P99 TTFT (ms):                           244852.99 
+Mean TTFT (ms):                          91823.28  
+Median TTFT (ms):                        83208.08  
+P99 TTFT (ms):                           175712.39 
 -----Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          536.72    
-Median TPOT (ms):                        488.96    
-P99 TPOT (ms):                           1213.38   
+Mean TPOT (ms):                          406.47    
+Median TPOT (ms):                        347.66    
+P99 TPOT (ms):                           822.77    
 ---------------Inter-token Latency----------------
-Mean ITL (ms):                           463.36    
-Median ITL (ms):                         355.74    
-P99 ITL (ms):                            3266.19   
+Mean ITL (ms):                           336.52    
+Median ITL (ms):                         271.13    
+P99 ITL (ms):                            2121.01   
 ==================================================
 ```
