@@ -7,7 +7,7 @@ Threadripper Pro 3745wx
 4 x MI100 GPUs with Infinity Fabric Link
 
 ## VLLM Configuration
-The following settings were used to launch the vllm server for each model. Thusfar minimal effort has gone into the configuration of vLLM for optimal performance.
+The following settings were used to launch the vllm server for each model. Thusfar minimal effort has gone into the configuration of vLLM for optimal performance. If options were changed or added for benchmarking they are listed as well. Some larger models have to be run with lower concurrency, and requests have been lowered to shorten benchmark time.
 
 ```bash
 vllm serve <model> \
@@ -22,6 +22,34 @@ vllm serve <model> \
 ```
 ```bash
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
+```
+
+## Cogit0 v1 Preview Llama 3.3 70b GPTQ 8 bit
+* btbtyler09/cogito-v1-preview-llama-70B-gptq-8bit
+* --max-concurrency 6
+* --num-prompts 50
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  212.43    
+Total input tokens:                      51200     
+Total generated tokens:                  5945      
+Request throughput (req/s):              0.24      
+Output token throughput (tok/s):         27.99     
+Total Token throughput (tok/s):          269.00    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          6078.67   
+Median TTFT (ms):                        6250.83   
+P99 TTFT (ms):                           8916.73   
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          182.00    
+Median TPOT (ms):                        165.98    
+P99 TPOT (ms):                           814.08    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           160.99    
+Median ITL (ms):                         98.83     
+P99 ITL (ms):                            1994.50   
+==================================================
 ```
 
 ## Cogito v1 Preview Qwen 32B GPTQ 8 bit
