@@ -23,6 +23,34 @@ vllm serve <model> \
 ```bash
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
 ```
+## IBM Granite 3.3 8b Instruct
+* ibm-granite/granite-3.3-8b-instruct
+* max-concurrency 25
+* kv-cahce-dtype fp16
+
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     1000      
+Benchmark duration (s):                  498.37    
+Total input tokens:                      1024000   
+Total generated tokens:                  119497    
+Request throughput (req/s):              2.01      
+Output token throughput (tok/s):         239.78    
+Total Token throughput (tok/s):          2294.49   
+---------------Time to First Token----------------
+Mean TTFT (ms):                          1040.36   
+Median TTFT (ms):                        247.92    
+P99 TTFT (ms):                           7139.91   
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          99.63     
+Median TPOT (ms):                        75.27     
+P99 TPOT (ms):                           285.20    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           95.96     
+Median ITL (ms):                         28.52     
+P99 ITL (ms):                            2635.79   
+==================================================
+```
 
 ## Cogit0 v1 Preview Llama 3.3 70b GPTQ 8 bit
 * btbtyler09/cogito-v1-preview-llama-70B-gptq-8bit
