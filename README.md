@@ -54,6 +54,7 @@ docker run -it \
   --device=/dev/dri/renderD129 \
   --device=/dev/dri/renderD130 \
   --device=/dev/dri/renderD131 \
+  --env VLLM_USE_V1=1 \
   --env HSA_OVERRIDE_GFX_VERSION=9.0.8 \
   --env VLLM_USE_TRITON_FLASH_ATTN=1 \
   --env HF_HOME=/huggingface \
@@ -66,20 +67,20 @@ In this example I have specified a few extra instructions which may also need to
 * The max-model-length may be increased if you have memory capacity to do so. If you are running on a single gpu, it may need to be decreased.
 * tensor-parallel-size is set to 4 for running on 4 gpus. This needs to be a factor of 2, so you can remove it for running on a single GPU or change it to 2 or 8 depending on your available hardware.
 * trust-remote-code is set for the Phi 4 model. Some models require this, but the Llama models do not. Phi 4 also has other dependencies you will need to install in the container before running this command. I believe they are scipy, peft, and backoff. If you run into an error, you should try the pip install it lists.
-* kv-cache-dtype was a recent adition to vLLM. It can reduce memory usage for large context. I was testing with it enabled. 
+* kv-cache-dtype was a recent adition to vLLM. It can reduce memory usage for large context. I was testing with it enabled. **Doesn't work with V1 engine**
 ```bash
 vllm serve microsoft/Phi-4-multimodal-instruct \
-        --swap-space 16 \
-        --gpu-memory-utilization 0.97 \
-        --guided-decoding-backend outlines \
-        --max-model-len 32768 \
-        --tensor-parallel-size 4 \
-        --disable-log-requests \
-        --trust-remote-code \
-        --kv-cache-dtype fp8
+--gpu-memory-utilization 0.98 \
+--guided-decoding-backend auto \
+--max-model-len 32768 \
+--tensor-parallel-size 4 \
+--disable-log-requests \
+--trust-remote-code 
 ```
 ## Supported Quantizations
 It would be good to get some input on this. I have been able to quantize Llama-3.1-8B-Instruct to 4 and 8 bit using gptqmodel, but it took some trial and error. I haven't had any luck running GGUF models, and most models I have pulled from huggingface either refuse to run or spit out gibberish. I am trying to quantize Llama-3.3-70B, but I have run into issues with insufficient memory. I'm working on that, and will publish results with the 70b model as soon as I can get an 8-bit quantization up and running. The 124 GB isn't quite enough for running 70b models in FP16, but it should work well with 8 bit.
+
+**Latest update (v0.8.5) seems to break gptq quant models**
 
 My quantization of Llama-3.1 can be pulled from huggingface hub if you'd like to test it:
 [btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit](https://huggingface.co/btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit)
