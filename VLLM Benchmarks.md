@@ -27,10 +27,67 @@ vllm serve <model> \
 ```bash
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
 ```
+## Qwen 3 32B
+* Qwen/Qwen3-32B
+* max-concurrency 10
+* num-prompts 50
+
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  168.13    
+Total input tokens:                      51200     
+Total generated tokens:                  6020      
+Request throughput (req/s):              0.30      
+Output token throughput (tok/s):         35.81     
+Total Token throughput (tok/s):          340.33    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          18010.33  
+Median TTFT (ms):                        25544.11  
+P99 TTFT (ms):                           29347.78  
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          116.74    
+Median TPOT (ms):                        89.65     
+P99 TPOT (ms):                           265.20    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           117.70    
+Median ITL (ms):                         70.26     
+P99 ITL (ms):                            87.15     
+==================================================
+```
+
+
+
 ## IBM Granite 3.3 8b Instruct
 * ibm-granite/granite-3.3-8b-instruct
 * max-concurrency 25
 
+**0.8.5**
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     500       
+Benchmark duration (s):                  1863.79   
+Total input tokens:                      512000    
+Total generated tokens:                  59906     
+Request throughput (req/s):              0.27      
+Output token throughput (tok/s):         32.14     
+Total Token throughput (tok/s):          306.85    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          9627.54   
+Median TTFT (ms):                        2258.39   
+P99 TTFT (ms):                           46419.07  
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          762.64    
+Median TPOT (ms):                        633.76    
+P99 TPOT (ms):                           2137.24   
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           702.73    
+Median ITL (ms):                         30.25     
+P99 ITL (ms):                            22596.86  
+==================================================
+```
+
+**0.8.3**
 ```bash
 ============ Serving Benchmark Result ============
 Successful requests:                     1000      
