@@ -9,6 +9,8 @@ Threadripper Pro 3745wx
 ## VLLM Configuration
 The following settings were used to launch the vllm server for each model. Thusfar minimal effort has gone into the configuration of vLLM for optimal performance. If options were changed or added for benchmarking they are listed as well. Some larger models have to be run with lower concurrency, and requests have been lowered to shorten benchmark time.
 
+**kv-cache-dtype of FP8 seems to be broken for MI100 in 0.8.5**
+
 ```bash
 vllm serve <model> \
         --swap-space 16 \
@@ -18,7 +20,9 @@ vllm serve <model> \
         --tensor-parallel-size 4 \
         --disable-log-requests \
         --trust-remote-code \
+        --dtype half \
         --kv-cache-dtype fp8
+
 ```
 ```bash
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
@@ -26,7 +30,6 @@ python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --m
 ## IBM Granite 3.3 8b Instruct
 * ibm-granite/granite-3.3-8b-instruct
 * max-concurrency 25
-* kv-cahce-dtype fp16
 
 ```bash
 ============ Serving Benchmark Result ============
@@ -108,6 +111,8 @@ P99 ITL (ms):                            125.29
 ```
 
 ## Gemma 3 27b
+* Model won't run in vLLM 0.8.5, need to investigate.
+* This model ran in older versions of vLLM, but had issues with outputting gibberish at longer context.
 ```
 ============ Serving Benchmark Result ============
 Successful requests:                     1000      
@@ -132,27 +137,30 @@ P99 ITL (ms):                            20693.33
 ==================================================
 ```
 
-## Phi 4 Multimodal vllm results         
+## Phi 4 Multimodal vllm results
+* updated results for vLLM 0.8.5
+* max-concurrency=20
+* vLLM 0.8.2 seemed much faster for this...
 ```
 ============ Serving Benchmark Result ============
 Successful requests:                     1000      
-Benchmark duration (s):                  201.59    
+Benchmark duration (s):                  1122.56   
 Total input tokens:                      1024000   
-Total generated tokens:                  120912    
-Request throughput (req/s):              4.96      
-Output token throughput (tok/s):         599.78    
-Total Token throughput (tok/s):          5679.34   
+Total generated tokens:                  120918    
+Request throughput (req/s):              0.89      
+Output token throughput (tok/s):         107.72    
+Total Token throughput (tok/s):          1019.92   
 ---------------Time to First Token----------------
-Mean TTFT (ms):                          91823.28  
-Median TTFT (ms):                        83208.08  
-P99 TTFT (ms):                           175712.39 
+Mean TTFT (ms):                          12357.20  
+Median TTFT (ms):                        4403.76   
+P99 TTFT (ms):                           70067.62  
 -----Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          406.47    
-Median TPOT (ms):                        347.66    
-P99 TPOT (ms):                           822.77    
+Mean TPOT (ms):                          127.52    
+Median TPOT (ms):                        30.03     
+P99 TPOT (ms):                           411.80    
 ---------------Inter-token Latency----------------
-Mean ITL (ms):                           336.52    
-Median ITL (ms):                         271.13    
-P99 ITL (ms):                            2121.01   
+Mean ITL (ms):                           83.43     
+Median ITL (ms):                         26.72     
+P99 ITL (ms):                            54.28     
 ==================================================
 ```
