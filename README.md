@@ -17,14 +17,14 @@ This container builds everything from source, so it takes time. The branches are
 DOCKER_BUILDKIT=1 docker build \
   --build-arg ARG_PYTORCH_ROCM_ARCH=gfx908 \
   -f Dockerfile.rocm_base \
-  -t vllm-dev-mi100:base .
+  -t vllm-dev-mi100:2025.05.03 .
 ```
 5. Build the vllm container
 ```bash
 DOCKER_BUILDKIT=1 docker build \
   --build-arg ARG_PYTORCH_ROCM_ARCH=gfx908 \
   -f Dockerfile.rocm-mi100 \
-  -t vllm-rocm-gfx908 .
+  -t vllm-rocm-gfx908.0.8.5 .
 ```
 
 
