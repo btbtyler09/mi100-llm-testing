@@ -9,10 +9,10 @@ Threadripper Pro 3745wx
 ## VLLM Configuration
 The following settings were used to launch the vllm server for each model. Thusfar minimal effort has gone into the configuration of vLLM for optimal performance. If options were changed or added for benchmarking they are listed as well. Some larger models have to be run with lower concurrency, and requests have been lowered to shorten benchmark time.
 
-**Very Important to set VLLM_USE_V1=1 in v0.8.5. Otherwise performance is terrible**
-**kv-cache-dtype of FP8 is not supported in V1 engine**
-**gptq quantization doesn't seem to work on V1 engine with v0.8.5, so I can't test any of those quants**
-**Native FP8 Models also don't work.**
+**10/27/2025 Update:**
+* I am working on updating some benchmarks with ROCm 7+ and newer versions of vLLM. See most recent comparison with Qwen3 32B and new results for Qwen3 Next 80B.
+* Qwen3 Next 80B has performance similar to Qwen3 32B (slower PP but faster TG). Likely my current reccomended model for 4 x MI100s.
+* Vanilla vLLM builds for MI100s again. I have recent docker containers available at: https://hub.docker.com/r/btbtyler09/vllm-rocm-gfx908
 
 ```bash
 vllm serve <model> \
@@ -24,8 +24,106 @@ vllm serve <model> \
 ```bash
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
 ```
+
+## Qwen 3 Next 80B Thinking
+* jart25/Qwen3-Next-80B-A3B-Thinking-Int4-GPTQ
+* vllm bench serve --base-url http://localhost:8000 --model jart25/Qwen3-Next-80B-A3B-Thinking-Int4-GPTQ --num-prompts 100 --request-rate x.x
+* ROCm 7.0.2
+
+**v0.11.1rc1.dev V1 Engine**
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     100       
+Failed requests:                         0         
+Request rate configured (RPS):           0.50      
+Benchmark duration (s):                  203.55    
+Total input tokens:                      102400    
+Total generated tokens:                  12321     
+Request throughput (req/s):              0.49      
+Output token throughput (tok/s):         60.53     
+Peak output token throughput (tok/s):    232.00    
+Peak concurrent requests:                9.00      
+Total Token throughput (tok/s):          563.59    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          212.56    
+Median TTFT (ms):                        207.05    
+P99 TTFT (ms):                           359.75    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          29.36     
+Median TPOT (ms):                        28.11     
+P99 TPOT (ms):                           41.67     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           29.29     
+Median ITL (ms):                         25.69     
+P99 ITL (ms):                            184.61    
+==================================================
+```
+
+* 1 req/s
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     100       
+Failed requests:                         0         
+Request rate configured (RPS):           1.00      
+Benchmark duration (s):                  104.13    
+Total input tokens:                      102400    
+Total generated tokens:                  12409     
+Request throughput (req/s):              0.96      
+Output token throughput (tok/s):         119.17    
+Peak output token throughput (tok/s):    348.00    
+Peak concurrent requests:                15.00     
+Total Token throughput (tok/s):          1102.57   
+---------------Time to First Token----------------
+Mean TTFT (ms):                          232.97    
+Median TTFT (ms):                        213.22    
+P99 TTFT (ms):                           401.61    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          39.10     
+Median TPOT (ms):                        38.80     
+P99 TPOT (ms):                           54.28     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           39.08     
+Median ITL (ms):                         34.36     
+P99 ITL (ms):                            190.46    
+==================================================
+```
+
+
 ## Qwen 3 32B
 * Qwen/Qwen3-32B
+* vllm bench serve --base-url http://localhost:8000 --model Qwen/Qwen3-32B --num-prompts 100 --request-rate 0.5
+* ROCm 7.0.2
+
+**v0.11.1rc2.dev323 V1 Engine**
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     100       
+Failed requests:                         0         
+Request rate configured (RPS):           0.50      
+Benchmark duration (s):                  206.73    
+Total input tokens:                      102400    
+Total generated tokens:                  12094     
+Request throughput (req/s):              0.48      
+Output token throughput (tok/s):         58.50     
+Peak output token throughput (tok/s):    152.00    
+Peak concurrent requests:                9.00      
+Total Token throughput (tok/s):          553.84    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          97.81     
+Median TTFT (ms):                        97.55     
+P99 TTFT (ms):                           129.19    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          53.45     
+Median TPOT (ms):                        53.66     
+P99 TPOT (ms):                           54.77     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           53.39     
+Median ITL (ms):                         53.48     
+P99 ITL (ms):                            62.88     
+==================================================
+```
+
+### Previous results
 * max-concurrency 5
 * num-prompts 100
 
