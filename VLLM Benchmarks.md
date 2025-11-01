@@ -25,12 +25,50 @@ vllm serve <model> \
 python benchmarks/benchmark_serving.py --dataset-name=random --model <model> --max-concurrency 50
 ```
 
+## GPT-OSS 120B
+* Now runs on latest docker container
+```bash
+vllm serve openai/gpt-oss-120b \
+  --tensor-parallel-size 4 \
+  --gpu-memory-utilization 0.94
+```
+**v0.11rc2.dev V1 Engine**
+* 1 req/s
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     100       
+Failed requests:                         0         
+Request rate configured (RPS):           1.00      
+Benchmark duration (s):                  102.94    
+Total input tokens:                      102400    
+Total generated tokens:                  5312      
+Request throughput (req/s):              0.97      
+Output token throughput (tok/s):         51.60     
+Peak output token throughput (tok/s):    173.00    
+Peak concurrent requests:                9.00      
+Total Token throughput (tok/s):          1046.36   
+---------------Time to First Token----------------
+Mean TTFT (ms):                          198.17    
+Median TTFT (ms):                        196.03    
+P99 TTFT (ms):                           468.62    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          27.13     
+Median TPOT (ms):                        22.83     
+P99 TPOT (ms):                           63.44     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           26.24     
+Median ITL (ms):                         20.51     
+P99 ITL (ms):                            174.81    
+==================================================
+```
+
 ## Qwen 3 Next 80B Thinking
 * jart25/Qwen3-Next-80B-A3B-Thinking-Int4-GPTQ
 * vllm bench serve --base-url http://localhost:8000 --model jart25/Qwen3-Next-80B-A3B-Thinking-Int4-GPTQ --num-prompts 100 --request-rate x.x
 * ROCm 7.0.2
 
 **v0.11.1rc1.dev V1 Engine**
+* 0.5 req/s
 ```bash
 ============ Serving Benchmark Result ============
 Successful requests:                     100       
