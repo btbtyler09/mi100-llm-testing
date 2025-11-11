@@ -2,13 +2,13 @@
 This is a repository for documenting the setup and performance of MI100s in popular inference engines.
 
 # vLLM
-VLLM is supported on MI200 and MI300 series GPUS, but some olde
-Nevertheless, It is still possible to run VLLM on these GPUS. Currently lack of support for gfx908 in Flash Attention and AITER prevent building VLLM using the existing dockerfiles in the VLLM repo. I have included dockerfiles for building the base rocm container and VLLM. These build files exclude Flash Attention and AITER, allowing the build to complete with support for older GPUS. For these GPUS VLLM will use Triton Flash Attention, which is supported by the MI100, but may be unoptimized. I have also built these containers and pushed them to docker hub, so you can pull those containers directly.
+VLLM is supported on MI200 and MI300 series GPUS, but some older cards aren't officially supported.
+Nevertheless, It is still possible to run VLLM on these GPUS. Currently there isn't support for gfx908 in Flash Attention and AITER prevent building VLLM using the existing dockerfiles in the VLLM repo. I have included dockerfiles for building the base rocm container and VLLM. These build files exclude AITER, but use my own Flash Attention repo (which only adds gfx908 to the support list) allowing the build to complete with support for older GPUS. For these GPUS VLLM will use Triton Flash Attention, which is supported by the MI100, but may be unoptimized. I have also built these containers and pushed them to docker hub, so you can pull those containers directly.
 
 **11/1/2025 Update**
 * Models like Qwen3 Next 80B and the gpt-oss series now run in the latest docker containers using vLLM 0.11.1.rc2+.
 * The latest container includes builds of pytorch 2.9 and triton 3.4.0. It may be possible to update to even newer nightly builds, but the build branches are defined by AMD in the vLLM dockerfiles.
-* I have tested some gptq quantized models with good results. If you run into issues, I reccomend trying quantized models from hugging face uesers: jart25, QuantTrio, and cpatonn
+* I have tested some gptq quantized models with good results. If you run into issues, I reccomend trying quantized models from hugging face users: jart25, QuantTrio, and cpatonn
 
 ## Build from source:
 I'm providing a brief summary of this so you can build yourself. 
