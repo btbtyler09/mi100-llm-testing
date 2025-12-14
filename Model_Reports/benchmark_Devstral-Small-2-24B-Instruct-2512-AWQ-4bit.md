@@ -32,7 +32,7 @@ This benchmark report evaluates the interactive UX and throughput performance of
 | CPU | AMD Ryzen Threadripper PRO 3945WX 12-Cores |
 | System RAM | 251.6 GB |
 | ROCm | 6.16.6 |
-| xGMI | Enabled |
+| xGMI | Present (hive_id 0xb868aeba19fb5cee) |
 
 
 
