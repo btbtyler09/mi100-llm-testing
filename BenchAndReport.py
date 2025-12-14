@@ -841,7 +841,7 @@ def get_system_configuration_markdown(hardware_info: str) -> str:
     except Exception:
         pass
 
-    rocm = "Unknown"
+    rocm_driver = "Unknown"
     try:
         r = subprocess.run(
             ["rocm-smi", "--showdriverversion"],
@@ -867,17 +867,32 @@ def get_system_configuration_markdown(hardware_info: str) -> str:
                         candidates.append(val)
 
             if candidates:
-                rocm = "; ".join(dict.fromkeys(candidates))
+                rocm_driver = "; ".join(dict.fromkeys(candidates))
             else:
                 # Last-resort: pick the first line that looks like a version.
                 for ln in [l.strip() for l in text_out.splitlines() if l.strip()]:
                     if "End of ROCm" in ln:
                         continue
                     if re.search(r"\d+\.\d+", ln):
-                        rocm = ln
+                        rocm_driver = ln
                         break
     except Exception:
         pass
+
+    # Best effort: user-space ROCm version inside the container / host FS.
+    rocm_userspace: str | None = None
+    for p in [
+        Path("/opt/rocm/.info/version"),
+        Path("/opt/rocm/.info/version-dev"),
+        Path("/opt/rocm/.info/version-utils"),
+    ]:
+        try:
+            if p.is_file():
+                rocm_userspace = p.read_text(encoding="utf-8", errors="ignore").strip().splitlines()[0].strip()
+                if rocm_userspace:
+                    break
+        except Exception:
+            continue
 
     xgmi: str | None = None
 
@@ -957,8 +972,10 @@ def get_system_configuration_markdown(hardware_info: str) -> str:
         f"| Kernel | {kernel} |",
         f"| CPU | {cpu_model} |",
         f"| System RAM | {ram_gb} |",
-        f"| ROCm | {rocm} |",
+        f"| ROCk Module Version | {rocm_driver} |",
     ]
+    if rocm_userspace:
+        rows.append(f"| ROCm Version | {rocm_userspace} |")
     if xgmi is not None and xgmi != "Unknown":
         rows.append(f"| xGMI | {xgmi} |")
     return "\n".join(rows)

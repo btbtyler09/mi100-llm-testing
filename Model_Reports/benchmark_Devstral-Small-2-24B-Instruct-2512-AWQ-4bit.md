@@ -31,7 +31,8 @@ This benchmark report evaluates the interactive UX and throughput performance of
 | Kernel | 6.8.0-87-generic |
 | CPU | AMD Ryzen Threadripper PRO 3945WX 12-Cores |
 | System RAM | 251.6 GB |
-| ROCm | 6.16.6 |
+| ROCk Module Version | 6.16.6 |
+| ROCm | 7.1.0 |
 | xGMI | Present (hive_id 0xb868aeba19fb5cee) |
 
 
