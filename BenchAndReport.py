@@ -680,7 +680,7 @@ def generate_report(
     client: OpenAI,
     model: str,
     prompt: str,
-    max_tokens: int = 4096,
+    max_tokens: int = 131072,
 ) -> str:
     """Use the model to generate its own benchmark report"""
     
@@ -698,8 +698,11 @@ def generate_report(
             temperature=0.7,
         )
         
-        return response.choices[0].message.content
-        
+        content = response.choices[0].message.content
+        if content is None:
+            content = "(No content returned — model may need higher max_tokens)"
+        return content
+
     except Exception as e:
         print(f"Error generating report: {e}")
         return f"# Error Generating Report\n\nFailed to generate report: {e}"
@@ -1126,7 +1129,6 @@ def main():
                     client,
                     args.model,
                     generate_interpretation_prompt(args.model, hardware_info, scenario, r),
-                    max_tokens=450,
                 )
             )
             interp = _strip_leading_heading(interp, "Interpretation")
@@ -1152,7 +1154,6 @@ def main():
                 client,
                 args.model,
                 generate_recommendations_prompt(args.model, hardware_info, results, sweet_spot),
-                max_tokens=500,
             )
         )
         recommendations = _strip_leading_heading(recommendations, "Recommendations")
@@ -1196,7 +1197,6 @@ def main():
                 generate_exec_summary_prompt(args.model, hardware_info, results, sweet_spot)
                 + "\n\nAdditional context (do not quote verbatim; do not add tables):\n\n"
                 + report_body_without_summary[:6000],
-                max_tokens=350,
             )
         )
         exec_summary = _strip_leading_heading(exec_summary, "Executive Summary")
