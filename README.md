@@ -82,6 +82,29 @@ vllm serve microsoft/Phi-4-multimodal-instruct \
 --disable-log-requests \
 --trust-remote-code 
 ```
+## Benchmark Results
+
+Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs via vLLM. Full interactive charts with legend toggle are available in the [interactive dashboard](charts/benchmark_charts.html). Detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+
+### Single-User Prefill & Decode (c=1)
+![Prefill & Decode Comparison](charts/pp_tg_comparison.png)
+
+### Mixed Traffic (c=8, variable input lengths)
+![Mixed Traffic Performance](charts/mixed_traffic.png)
+
+### Concurrency Scaling
+![Concurrency Scaling](charts/concurrency_scaling.png)
+
+### Per-User Throughput vs Concurrency
+![Per-User Scaling](charts/per_user_scaling.png)
+
+**Models tested:** Devstral-Small-2-24B (AWQ-4bit, Mixed-GPTQ), Qwen3-Coder-Next (GPTQ-4bit), Qwen3.5-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.5-122B-A10B (GPTQ-4bit)
+
+To regenerate charts after running new benchmarks:
+```bash
+python generate_charts.py
+```
+
 ## Supported Quantizations
 It would be good to get some input on this. I have been able to quantize Llama-3.1-8B-Instruct to 4 and 8 bit using gptqmodel, but it took some trial and error. I haven't had any luck running GGUF models, and most models I have pulled from huggingface either refuse to run or spit out gibberish. I am trying to quantize Llama-3.3-70B, but I have run into issues with insufficient memory. I'm working on that, and will publish results with the 70b model as soon as I can get an 8-bit quantization up and running. The 124 GB isn't quite enough for running 70b models in FP16, but it should work well with 8 bit.
 

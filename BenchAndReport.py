@@ -1266,9 +1266,26 @@ Note: This report was written by the model being benchmarked.
     
     with open(output_path, 'w') as f:
         f.write(full_report)
-    
+
+    # Save JSON sidecar with structured benchmark data
+    json_data = {
+        "model": args.model,
+        "hardware": hardware_info,
+        "date": datetime.now().isoformat(),
+        "results": [asdict(r) for r in results],
+    }
+    for r in json_data["results"]:
+        r.pop("raw_output", None)
+    output_dir = Path(output_path).parent
+    json_dir = output_dir / "json_data"
+    json_dir.mkdir(exist_ok=True)
+    json_path = json_dir / Path(output_path).name.replace(".md", ".json")
+    with open(json_path, "w") as f:
+        json.dump(json_data, f, indent=2)
+
     print(f"\n{'='*60}")
     print(f"✓ Report saved to: {output_path}")
+    print(f"✓ JSON data saved to: {json_path}")
     print(f"{'='*60}")
     
     return 0
