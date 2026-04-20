@@ -16,7 +16,7 @@ vLLM officially supports MI200 and MI300 series GPUs, but older cards like the M
 * AITER provides Triton-based RoPE and attention kernels. CK-based ops (GEMM, MoE, Flash Attention, norms) are disabled on gfx908 since CK uses gfx90a+ instructions.
 * Only one env var needed: `VLLM_ROCM_USE_AITER=1`. All other AITER flags are auto-configured for gfx908.
 * ROCm 7.0, PyTorch 2.9.1, Triton 3.4.0.
-* Tested with GPTQ quantized models (4-bit and 8-bit). Recommended quant providers on HuggingFace: jart25, QuantTrio, cpatonn.
+* Tested with GPTQ quantized models (4-bit and 8-bit). Recommended quant providers on HuggingFace: jart25, QuantTrio, cpatonn, or my own (btbtyler09).
 
 **Known issues:**
 * AITER Unified Attention is disabled on gfx908 — it corrupts model state after ~200+ sustained requests, causing degenerate repetitive output. The default Triton Attention backend is stable and performance-equivalent.
@@ -54,20 +54,47 @@ docker run -it \
   bash
 ```
 
-Run a model:
+Run a model (benchmark-ready server — this is the exact form used for the v0.19 benchmarks in `Model_Reports/`):
 ```bash
-vllm serve Qwen/Qwen3.5-35B-A3B-GPTQ-4bit \
-  --gpu-memory-utilization 0.75 \
-  --max-model-len 32768 \
-  --tensor-parallel-size 4 \
-  --dtype half \
-  --quantization gptq \
-  --disable-log-requests \
-  --trust-remote-code
+docker run -d --name mi100-bench \
+  --network=host --cpuset-cpus="0-11" --group-add=video --ipc=host \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/kfd \
+  --device=/dev/dri/renderD128 --device=/dev/dri/renderD129 \
+  --device=/dev/dri/renderD130 --device=/dev/dri/renderD131 \
+  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 \
+  --env HF_HOME=/huggingface \
+  --env VLLM_ROCM_USE_AITER=1 \
+  --env VLLM_MI100_TORCH_COMPILE=1 \
+  -v ~/.cache/huggingface:/huggingface \
+  -v /path/to/models:/models \
+  btbtyler09/vllm-rocm-gfx908:v0.19.2rc1 \
+  vllm serve /models/Qwen3.6-35B-A3B-GPTQ-4bit \
+    --served-model-name qwen3.6-35b-4bit \
+    --tensor-parallel-size 4 \
+    --dtype half \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.92 \
+    --attention-backend TRITON_ATTN \
+    --compilation-config '{"mode": 3, "cudagraph_mode": "FULL_AND_PIECEWISE"}'
 ```
-* `tensor-parallel-size` should match your GPU count (1, 2, or 4).
-* `max-model-len` can be increased if you have memory headroom, or decreased for single-GPU setups.
-* `gpu-memory-utilization` controls how much VRAM vLLM reserves (0.75 is conservative, 0.95+ for max context).
+
+**Docker flags:**
+* `--network=host` + `--ipc=host` — required for vLLM's tensor-parallel all-reduce across GPUs.
+* `--cpuset-cpus="0-11"` — pins the container to a NUMA-local CPU set, reducing cross-socket traffic during dispatch.
+* `--device=/dev/kfd` + 4× `/dev/dri/renderD12{8..31}` — exposes the AMD kernel driver and all four MI100s. Drop devices to match your GPU count.
+* `--cap-add=SYS_PTRACE` + `--security-opt seccomp=unconfined` — needed by ROCm's profiler/ptrace paths and a few kernel syscalls.
+* `HSA_OVERRIDE_GFX_VERSION=9.0.8` — forces the ROCm runtime to report gfx908 for the MI100.
+* `VLLM_ROCM_USE_AITER=1` — enables AITER's Triton RoPE and attention kernels; all other AITER flags are auto-configured off for gfx908 (CK ops, FP8/FP4, Unified Attention).
+* `VLLM_MI100_TORCH_COMPILE=1` — custom flag (set by the `+mi100` image patches) that lets `torch.compile` run on gfx908 where stock vLLM would gate it off.
+
+**vLLM serve flags:**
+* `--tensor-parallel-size 4` — shard across 4 GPUs. Use 1/2/4 to match your hardware.
+* `--dtype half` — fp16. Required for GPTQ on MI100 (no bfloat16 support in the kernels we use).
+* `--max-model-len 32768` — KV-cache max context. Raise if you have memory headroom; lower for single-GPU runs.
+* `--gpu-memory-utilization 0.92` — fraction of VRAM vLLM reserves. 0.75 is conservative; 0.92–0.94 is what the benchmarks used; 0.95+ risks OOM on the 122B model.
+* `--attention-backend TRITON_ATTN` — the stable attention backend on gfx908. AITER's Unified Attention (UA) is known to corrupt model state after ~200 sustained requests on MI100 and must stay off.
+* `--compilation-config '{"mode": 3, "cudagraph_mode": "FULL_AND_PIECEWISE"}'` — enables `torch.compile` (mode 3 = max autotune) with a full CUDA-graph for the decode path plus piecewise graphs for prefill. This is the main decode-throughput win in v0.19 vs. v0.16.
 
 ## Build from source
 
