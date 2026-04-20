@@ -26,7 +26,7 @@ vLLM officially supports MI200 and MI300 series GPUs, but older cards like the M
 ## Pull the prebuilt container from Docker Hub
 
 ```bash
-docker pull btbtyler09/vllm-rocm-gfx908:v0.16.1.dev
+docker pull btbtyler09/vllm-rocm-gfx908:v0.19.2rc1
 ```
 
 Start a container with GPU access:
@@ -50,7 +50,7 @@ docker run -it \
   --env VLLM_ROCM_USE_AITER=1 \
   --env HF_HOME=/huggingface \
   -v /home/{user}/.cache/huggingface:/huggingface \
-  btbtyler09/vllm-rocm-gfx908:v0.16.1.dev \
+  btbtyler09/vllm-rocm-gfx908:v0.19.2rc1 \
   bash
 ```
 
@@ -122,6 +122,7 @@ Pre-quantized models on HuggingFace:
 
 | Tag | vLLM Version | AITER | Notes |
 |-----|-------------|-------|-------|
-| `v0.16.1.dev` | 0.16.1.dev | Yes | **Latest** — AITER Triton ops, UA-OFF fix |
+| `v0.19.2rc1` | 0.19.2rc1 | Yes | **Latest** — TRITON_ATTN + compile+piecewise, ROCm 7.2.1 |
+| `v0.16.1.dev` | 0.16.1.dev | Yes | AITER Triton ops, UA-OFF fix |
 | `v0.15.2rc1.dev-aiter` | 0.15.2rc1.dev | Yes | Older, first AITER integration |
 | `v0.15.2rc1.dev` | 0.15.2rc1.dev | No | Pre-AITER, Triton Flash Attention only |
