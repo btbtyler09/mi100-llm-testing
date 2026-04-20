@@ -20,6 +20,7 @@ Requirements:
 """
 
 import argparse
+import os
 import subprocess
 import json
 import re
@@ -177,6 +178,24 @@ class BenchmarkSuite:
                 "output_len": 256,
                 "concurrency": 32,
                 "num_prompts": 30,
+                "request_rate": "inf",
+            },
+            {
+                "name": "Concurrency Scaling (c=64)",
+                "description": "Scaling test at concurrency 64",
+                "input_len": 1024,
+                "output_len": 256,
+                "concurrency": 64,
+                "num_prompts": 64,
+                "request_rate": "inf",
+            },
+            {
+                "name": "Concurrency Scaling (c=128)",
+                "description": "Scaling test at concurrency 128",
+                "input_len": 1024,
+                "output_len": 256,
+                "concurrency": 128,
+                "num_prompts": 128,
                 "request_rate": "inf",
             },
         ]
@@ -410,9 +429,10 @@ def run_benchmark(
     model: str,
     base_url: str,
     scenario: dict,
+    tokenizer: str | None = None,
 ) -> BenchmarkResult:
     """Run a single benchmark scenario"""
-    
+
     result = BenchmarkResult(
         name=scenario["name"],
         input_len=scenario["input_len"],
@@ -420,7 +440,7 @@ def run_benchmark(
         concurrency=scenario["concurrency"],
         num_prompts=scenario["num_prompts"],
     )
-    
+
     cmd = [
         "vllm", "bench", "serve",
         "--base-url", base_url,
@@ -432,6 +452,8 @@ def run_benchmark(
         "--num-prompts", str(scenario["num_prompts"]),
         "--request-rate", str(scenario.get("request_rate", "inf")),
     ]
+    if tokenizer:
+        cmd.extend(["--tokenizer", tokenizer])
     
     if scenario.get("range_ratio"):
         cmd.extend(["--random-range-ratio", str(scenario["range_ratio"])])
@@ -468,9 +490,9 @@ def run_benchmark(
             if hasattr(result, key):
                 setattr(result, key, value)
         
-        # Calculate derived metrics
-        if result.ttft_mean_ms > 0 and result.input_len > 0:
-            result.pp_speed = (result.input_len / result.ttft_mean_ms) * 1000
+        # Calculate derived metrics (use median to avoid cold-start outliers)
+        if result.ttft_median_ms > 0 and result.input_len > 0:
+            result.pp_speed = (result.input_len / result.ttft_median_ms) * 1000
         
         if result.tpot_mean_ms > 0:
             result.tg_speed = 1000 / result.tpot_mean_ms
@@ -680,7 +702,7 @@ def generate_report(
     client: OpenAI,
     model: str,
     prompt: str,
-    max_tokens: int = 131072,
+    max_tokens: int = 16384,
 ) -> str:
     """Use the model to generate its own benchmark report"""
     
@@ -695,12 +717,24 @@ def generate_report(
                 {"role": "user", "content": prompt}
             ],
             max_tokens=max_tokens,
-            temperature=0.7,
+            # Qwen3.5 recommended: Thinking mode, general task params
+            temperature=1.0,
+            top_p=0.95,
+            presence_penalty=1.5,
+            extra_body={
+                "top_k": 20,
+                "min_p": 0.0,
+                "repetition_penalty": 1.0,
+            },
         )
         
         content = response.choices[0].message.content
         if content is None:
             content = "(No content returned — model may need higher max_tokens)"
+        # Strip thinking/reasoning preamble (e.g. Qwen3.5 "Thinking Process:...
+        # </think>\n\nActual answer" or "<think>...</think>\n\nActual answer").
+        if "</think>" in content:
+            content = content.split("</think>", 1)[1].lstrip("\n")
         return content
 
     except Exception as e:
@@ -1008,6 +1042,12 @@ def main():
         help="Model name/path (as served by vLLM)"
     )
     parser.add_argument(
+        "--tokenizer",
+        default=None,
+        help="Tokenizer name or path (passed to 'vllm bench serve --tokenizer'). "
+             "Use this when --model is a served-name alias rather than an HF id/path."
+    )
+    parser.add_argument(
         "--base-url",
         default="http://localhost:8000",
         help="vLLM server base URL (default: http://localhost:8000)"
@@ -1054,7 +1094,14 @@ def main():
         action="store_true",
         help="Include a Mermaid throughput-vs-concurrency chart (requires a Mermaid-capable markdown renderer)"
     )
-    
+
+    parser.add_argument(
+        "--launch-command",
+        default=None,
+        help="Path to a shell script (or inline string starting with '#!' or 'docker') "
+             "containing the exact docker/vllm launch used. Embedded in the report so readers can reproduce."
+    )
+
     args = parser.parse_args()
     
     # Setup
@@ -1074,7 +1121,9 @@ def main():
         print(f"Loading results from {args.results_json}")
         with open(args.results_json) as f:
             data = json.load(f)
-            for r in data:
+            # Support both list format and dict-with-results-key format
+            items = data["results"] if isinstance(data, dict) and "results" in data else data
+            for r in items:
                 results.append(BenchmarkResult(**r))
     else:
         suite = BenchmarkSuite()
@@ -1090,9 +1139,21 @@ def main():
         print(f"\nRunning {len(suite.scenarios)} benchmark scenarios...")
         print(f"Model: {args.model}")
         print(f"Server: {args.base_url}")
-        
+
+        # Warmup: trigger CUDA graph compilation / KV cache setup
+        print("\nRunning warmup requests...")
+        warmup_scenario = {
+            "name": "Warmup",
+            "input_len": 128,
+            "output_len": 32,
+            "concurrency": 1,
+            "num_prompts": 3,
+        }
+        run_benchmark(args.model, args.base_url, warmup_scenario, args.tokenizer)
+        print("Warmup complete.\n")
+
         for scenario in suite.scenarios:
-            result = run_benchmark(args.model, args.base_url, scenario)
+            result = run_benchmark(args.model, args.base_url, scenario, args.tokenizer)
             results.append(result)
             
             # Brief pause between benchmarks
@@ -1115,6 +1176,15 @@ def main():
         scaling_table = build_concurrency_scaling_table(results)
         mermaid = build_mermaid_throughput_chart(results) if args.include_mermaid else ""
         system_table = get_system_configuration_markdown(hardware_info)
+
+        launch_cmd_section = ""
+        if args.launch_command:
+            if os.path.exists(args.launch_command):
+                with open(args.launch_command) as _f:
+                    _cmd = _f.read().rstrip()
+            else:
+                _cmd = args.launch_command
+            launch_cmd_section = "\n\n## Launch Command\n\n```bash\n" + _cmd + "\n```\n"
 
         scenario_sections = []
         suite = BenchmarkSuite()
@@ -1168,6 +1238,7 @@ def main():
                 "",
                 "## System Configuration",
                 system_table,
+                launch_cmd_section,
                 "",
                 "## Performance Summary",
                 perf_table,
@@ -1213,6 +1284,7 @@ def main():
                 "",
                 "## System Configuration",
                 system_table,
+                launch_cmd_section,
                 "",
                 "## Performance Summary",
                 perf_table,

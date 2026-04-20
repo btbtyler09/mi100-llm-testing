@@ -172,3 +172,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Claude-generated test scripts
+tests/
+
+# Archived old benchmark data
+Model_Reports/archive/
+Model_Reports/json_data/archive/

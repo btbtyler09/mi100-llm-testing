@@ -55,6 +55,10 @@ def load_all():
     for fp in files:
         with open(fp) as f:
             data = json.load(f)
+        # Recalculate pp_speed from median (robust to cold-start outliers)
+        for r in data["results"]:
+            if r.get("ttft_median_ms", 0) > 0 and r.get("input_len", 0) > 0:
+                r["pp_speed"] = (r["input_len"] / r["ttft_median_ms"]) * 1000
         data["_short"] = short_name(data["model"])
         models.append(data)
     return models

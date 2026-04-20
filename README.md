@@ -2,50 +2,37 @@
 This is a repository for documenting the setup and performance of MI100s in popular inference engines.
 
 # vLLM
-VLLM is supported on MI200 and MI300 series GPUS, but some older cards aren't officially supported.
-Nevertheless, It is still possible to run VLLM on these GPUS. Currently there isn't support for gfx908 in Flash Attention and AITER prevent building VLLM using the existing dockerfiles in the VLLM repo. I have included dockerfiles for building the base rocm container and VLLM. These build files exclude AITER, but use my own Flash Attention repo (which only adds gfx908 to the support list) allowing the build to complete with support for older GPUS. For these GPUS VLLM will use Triton Flash Attention, which is supported by the MI100, but may be unoptimized. I have also built these containers and pushed them to docker hub, so you can pull those containers directly.
 
-**11/1/2025 Update**
-* Models like Qwen3 Next 80B and the gpt-oss series now run in the latest docker containers using vLLM 0.11.1.rc2+.
-* The latest container includes builds of pytorch 2.9 and triton 3.4.0. It may be possible to update to even newer nightly builds, but the build branches are defined by AMD in the vLLM dockerfiles.
-* I have tested some gptq quantized models with good results. If you run into issues, I reccomend trying quantized models from hugging face users: jart25, QuantTrio, and cpatonn
+vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
 
-## Build from source:
-I'm providing a brief summary of this so you can build yourself. 
+**4/20/2026 Update — v0.19 benchmark refresh**
+* All models rebenchmarked on vLLM v0.19.2rc1+mi100 with ROCm 7.2.1.
+* Attention backend: `--attention-backend TRITON_ATTN` (stable on gfx908).
+* Compile + piecewise CUDA graphs enabled for improved decode throughput.
+* New reports are under `Model_Reports/` with the `_v0.19_triton` suffix.
 
-1. Pull the git repo for vLLM
-2. Pull this repo
-3. Copy the dockerfiles into vLLM
-4. Build the base docker container for the MI100.
-This container builds everything from source, so it takes time. The branches are specified in the dockerfile, so if you'd like to test new releases you can update those branches though you may run into compatibility issues.
+**3/11/2026 Update**
+* vLLM v0.16.1 with AITER (AMD Inference and Training Extension for ROCm) support for gfx908.
+* AITER provides Triton-based RoPE and attention kernels. CK-based ops (GEMM, MoE, Flash Attention, norms) are disabled on gfx908 since CK uses gfx90a+ instructions.
+* Only one env var needed: `VLLM_ROCM_USE_AITER=1`. All other AITER flags are auto-configured for gfx908.
+* ROCm 7.0, PyTorch 2.9.1, Triton 3.4.0.
+* Tested with GPTQ quantized models (4-bit and 8-bit). Recommended quant providers on HuggingFace: jart25, QuantTrio, cpatonn.
+
+**Known issues:**
+* AITER Unified Attention is disabled on gfx908 — it corrupts model state after ~200+ sustained requests, causing degenerate repetitive output. The default Triton Attention backend is stable and performance-equivalent.
+* GPTQ models require `--dtype half` (float16). bfloat16 will cause errors.
+* `HSA_OVERRIDE_GFX_VERSION` is no longer needed with native gfx908 support.
+
+## Pull the prebuilt container from Docker Hub
+
 ```bash
-DOCKER_BUILDKIT=1 docker build \
-  --build-arg ARG_PYTORCH_ROCM_ARCH=gfx908 \
-  -f Dockerfile.rocm_base \
-  -t vllm-dev-mi100:2025.10.26 .
-```
-5. Build the vllm container
-```bash
-DOCKER_BUILDKIT=1 docker build \
-  --build-arg ARG_PYTORCH_ROCM_ARCH=gfx908 \
-  -f Dockerfile.rocm-mi100 \
-  -t vllm-rocm-gfx908 .
+docker pull btbtyler09/vllm-rocm-gfx908:v0.16.1.dev
 ```
 
-
-## Pull the prebuilt container from docker hub
-I may not be able to keep the container on docker hub up to date, but I will try to rebuild at each major release.
-
-1. Pull the container from docker hub.
-```bash
-docker pull btbtyler09/vllm-rocm-gfx908
-```
-2. Start a new container with the image.
-
-You will need to modify some of the instructions in this command. 
-* I manually specify visible devices to make sure they are passed through correctly. render D128 represents the device in Node 0 if you run rocm-smi. The node numbers increment up from there. In this command I am specifying all 4 GPUs to be accessible in the container. You may also want to run multiple instances of the container with different GPUS, so 
-you can specify a specific number for your use case.
-* The huggingface cache folder is passed into the container to make your previously downloaded models accessible inside the container, and the HF_HOME environment variable is set to direct huggingface requests to that folder.
+Start a container with GPU access:
+* Specify render devices for your GPUs (renderD128 = GPU 0, incrementing from there).
+* Mount your HuggingFace cache to avoid re-downloading models.
+* `VLLM_ROCM_USE_AITER=1` enables AITER's Triton-based kernels for gfx908. All other AITER flags are auto-configured — CK ops, FP8/FP4, and Unified Attention are automatically disabled, while Triton RoPE is enabled. No other env vars are needed.
 
 ```bash
 docker run -it \
@@ -60,31 +47,50 @@ docker run -it \
   --device=/dev/dri/renderD130 \
   --device=/dev/dri/renderD131 \
   --env VLLM_USE_V1=1 \
-  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 \
-  --env VLLM_USE_TRITON_FLASH_ATTN=1 \
+  --env VLLM_ROCM_USE_AITER=1 \
   --env HF_HOME=/huggingface \
   -v /home/{user}/.cache/huggingface:/huggingface \
-  btbtyler09/vllm-rocm-gfx908 \
+  btbtyler09/vllm-rocm-gfx908:v0.16.1.dev \
   bash
 ```
-3. Run your model.
-In this example I have specified a few extra instructions which may also need to be changed depending on you model of choice and hardware.
-* The max-model-length may be increased if you have memory capacity to do so. If you are running on a single gpu, it may need to be decreased.
-* tensor-parallel-size is set to 4 for running on 4 gpus. This needs to be a factor of 2, so you can remove it for running on a single GPU or change it to 2 or 8 depending on your available hardware.
-* trust-remote-code is set for the Phi 4 model. Some models require this, but the Llama models do not. Phi 4 also has other dependencies you will need to install in the container before running this command. I believe they are scipy, peft, and backoff. If you run into an error, you should try the pip install it lists.
-* kv-cache-dtype was a recent adition to vLLM. It can reduce memory usage for large context. I was testing with it enabled. **Doesn't work with V1 engine**
+
+Run a model:
 ```bash
-vllm serve microsoft/Phi-4-multimodal-instruct \
---gpu-memory-utilization 0.98 \
---guided-decoding-backend auto \
---max-model-len 32768 \
---tensor-parallel-size 4 \
---disable-log-requests \
---trust-remote-code 
+vllm serve Qwen/Qwen3.5-35B-A3B-GPTQ-4bit \
+  --gpu-memory-utilization 0.75 \
+  --max-model-len 32768 \
+  --tensor-parallel-size 4 \
+  --dtype half \
+  --quantization gptq \
+  --disable-log-requests \
+  --trust-remote-code
 ```
+* `tensor-parallel-size` should match your GPU count (1, 2, or 4).
+* `max-model-len` can be increased if you have memory headroom, or decreased for single-GPU setups.
+* `gpu-memory-utilization` controls how much VRAM vLLM reserves (0.75 is conservative, 0.95+ for max context).
+
+## Build from source
+
+1. Pull the git repos for vLLM and AITER
+2. Build the AITER MI100 image (includes ROCm 7.0, PyTorch, Triton):
+```bash
+cd aiter
+DOCKER_BUILDKIT=1 docker build \
+  -f Dockerfile.mi100 \
+  -t aiter-mi100:latest .
+```
+3. Build the vLLM container on top of it:
+```bash
+cd vllm
+DOCKER_BUILDKIT=1 docker build \
+  --build-arg BASE_IMAGE=aiter-mi100:latest \
+  -f docker/Dockerfile.mi100 \
+  -t vllm-rocm-gfx908:latest .
+```
+
 ## Benchmark Results
 
-Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs via vLLM. Full interactive charts with legend toggle are available in the [interactive dashboard](charts/benchmark_charts.html). Detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs (gfx908) via vLLM v0.19.2rc1+mi100 with AITER (TRITON_ATTN, compile+piecewise). Full interactive charts with legend toggle are available in the [interactive dashboard](charts/benchmark_charts.html). Detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
 
 ### Single-User Prefill & Decode (c=1)
 ![Prefill & Decode Comparison](charts/pp_tg_comparison.png)
@@ -98,7 +104,7 @@ Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPU
 ### Per-User Throughput vs Concurrency
 ![Per-User Scaling](charts/per_user_scaling.png)
 
-**Models tested:** Devstral-Small-2-24B (AWQ-4bit, Mixed-GPTQ), Qwen3-Coder-Next (GPTQ-4bit), Qwen3.5-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.5-122B-A10B (GPTQ-4bit)
+**Models tested:** Qwen3.5-9B, Devstral-Small-2-24B (Mixed-GPTQ), Qwen3-Coder-30B-A3B (GPTQ-4bit), Qwen3.5-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.6-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3-Coder-Next (GPTQ-4bit), Qwen3.5-122B-A10B (GPTQ-4bit)
 
 To regenerate charts after running new benchmarks:
 ```bash
@@ -106,9 +112,16 @@ python generate_charts.py
 ```
 
 ## Supported Quantizations
-It would be good to get some input on this. I have been able to quantize Llama-3.1-8B-Instruct to 4 and 8 bit using gptqmodel, but it took some trial and error. I haven't had any luck running GGUF models, and most models I have pulled from huggingface either refuse to run or spit out gibberish. I am trying to quantize Llama-3.3-70B, but I have run into issues with insufficient memory. I'm working on that, and will publish results with the 70b model as soon as I can get an 8-bit quantization up and running. The 124 GB isn't quite enough for running 70b models in FP16, but it should work well with 8 bit.
 
-**Latest update (v0.8.5) seems to break gptq quant models**
+GPTQ quantization works well in 4-bit and 8-bit. AWQ is also supported. GGUF models are not supported by vLLM on ROCm.
 
-My quantization of Llama-3.1 can be pulled from huggingface hub if you'd like to test it:
-[btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit](https://huggingface.co/btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit)
+Pre-quantized models on HuggingFace:
+* [btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit](https://huggingface.co/btbtyler09/Llama-3.1-8B-Instruct-gptq-4bit)
+
+## Docker Hub Tags
+
+| Tag | vLLM Version | AITER | Notes |
+|-----|-------------|-------|-------|
+| `v0.16.1.dev` | 0.16.1.dev | Yes | **Latest** — AITER Triton ops, UA-OFF fix |
+| `v0.15.2rc1.dev-aiter` | 0.15.2rc1.dev | Yes | Older, first AITER integration |
+| `v0.15.2rc1.dev` | 0.15.2rc1.dev | No | Pre-AITER, Triton Flash Attention only |
