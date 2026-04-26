@@ -5,6 +5,11 @@ This is a repository for documenting the setup and performance of MI100s in popu
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
 
+**4/26/2026 Update — Round-3 MI100 patches (custom ops + NCCL Tree+LL)**
+* Qwen3.6 family rebenchmarked on the same v0.19.2rc1+mi100 image plus Round-3 patches: `5h` custom operators and `5j` NCCL Tree+LL all-reduce path.
+* Notable wins on Qwen3.6-35B-A3B-GPTQ-8bit: peak aggregate throughput 1365.89 tok/s at c=128 with TPOT 10.87 ms at c=1.
+* Reports use the `_v0.19_round3` suffix in `Model_Reports/`. Triton-only runs from 4/19 are retained for the models that haven't been rerun yet.
+
 **4/20/2026 Update — v0.19 benchmark refresh**
 * All models rebenchmarked on vLLM v0.19.2rc1+mi100 with ROCm 7.2.1.
 * Attention backend: `--attention-backend TRITON_ATTN` (stable on gfx908).
@@ -131,7 +136,9 @@ Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPU
 ### Per-User Throughput vs Concurrency
 ![Per-User Scaling](charts/per_user_scaling.png)
 
-**Models tested:** Qwen3.5-9B, Devstral-Small-2-24B (Mixed-GPTQ), Qwen3-Coder-30B-A3B (GPTQ-4bit), Qwen3.5-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.6-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3-Coder-Next (GPTQ-4bit), Qwen3.5-122B-A10B (GPTQ-4bit)
+**Models tested:**
+* On v0.19_round3 (4/26): Qwen3.6-27B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.6-35B-A3B (GPTQ-4bit, GPTQ-8bit)
+* On v0.19_triton (4/19): Qwen3.5-9B, Devstral-Small-2-24B (Mixed-GPTQ), Qwen3-Coder-30B-A3B (GPTQ-4bit), Qwen3-Coder-Next (GPTQ-4bit), Qwen3.5-35B-A3B (GPTQ-4bit, GPTQ-8bit), Qwen3.5-122B-A10B (GPTQ-4bit)
 
 To regenerate charts after running new benchmarks:
 ```bash
@@ -149,7 +156,5 @@ Pre-quantized models on HuggingFace:
 
 | Tag | vLLM Version | AITER | Notes |
 |-----|-------------|-------|-------|
-| `v0.19.2rc1` | 0.19.2rc1 | Yes | **Latest** — TRITON_ATTN + compile+piecewise, ROCm 7.2.1 |
-| `v0.16.1.dev` | 0.16.1.dev | Yes | AITER Triton ops, UA-OFF fix |
-| `v0.15.2rc1.dev-aiter` | 0.15.2rc1.dev | Yes | Older, first AITER integration |
-| `v0.15.2rc1.dev` | 0.15.2rc1.dev | No | Pre-AITER, Triton Flash Attention only |
+| `v0.19.2rc1` | 0.19.2rc1 | Yes | **Latest** — TRITON_ATTN + compile+piecewise + Round-3 MI100 patches, ROCm 7.2.1 |
+| `v0.16.1.dev` | 0.16.1.dev | Yes | Deprecated — earlier AITER Triton ops, UA-OFF fix |
