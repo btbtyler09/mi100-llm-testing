@@ -39,6 +39,35 @@ This benchmark evaluates qwen3.5-122b-4bit on 4x AMD MI100 (gfx908), ROCm 7.2.1,
 
 
 
+## Launch Command
+
+**This is the default-heuristic baseline, NOT the fastest config.** It's published as the comparison surface for the round-8 B4 tune ship. To reproduce from the post-ship image, set `VLLM_TUNED_CONFIG_FOLDER=/empty/moe_configs` and bind-mount an empty directory at that path so vLLM falls back to its built-in heuristic. For the fastest 122B config, see `benchmark_Qwen3.5-122B-A10B-GPTQ-4bit.md`.
+
+```bash
+docker run -d --name mi100-bench \
+  --network=host --cpuset-cpus="0-11" --group-add=video --ipc=host \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/kfd \
+  --device=/dev/dri/renderD128 --device=/dev/dri/renderD129 \
+  --device=/dev/dri/renderD130 --device=/dev/dri/renderD131 \
+  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 \
+  --env HF_HOME=/huggingface \
+  --env VLLM_ROCM_USE_AITER=1 \
+  --env VLLM_MI100_TORCH_COMPILE=1 \
+  --env VLLM_ROCM_USE_AITER_TRITON_GEMM=1 \
+  --env NCCL_ALGO=Tree --env NCCL_PROTO=LL \
+  --env VLLM_TUNED_CONFIG_FOLDER=/empty/moe_configs \
+  -v ~/.cache/huggingface:/huggingface \
+  -v /path/to/models:/models:ro \
+  btbtyler09/vllm-rocm-gfx908:v0.20.0rc1.dev \
+  vllm serve /models/Qwen3.5-122B-A10B-GPTQ-4bit \
+    --served-model-name qwen3.5-122b-4bit \
+    --tensor-parallel-size 4 --dtype half --max-model-len 32768 \
+    --gpu-memory-utilization 0.94 \
+    --attention-backend TRITON_ATTN \
+    --compilation-config '{"mode": 3, "cudagraph_mode": "FULL_AND_PIECEWISE"}'
+```
+
 ## Performance Summary
 
 | Scenario | Category | Input (tok) | Output (tok) | Concurrency | Output Throughput (tok/s) | TTFT mean (ms) | TPOT mean (ms) | TPOT p99 (ms) |

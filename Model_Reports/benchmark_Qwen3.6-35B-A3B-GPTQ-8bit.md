@@ -39,6 +39,34 @@ Running the qwen3.6-35b-a3b-8bit model on four AMD MI100 GPUs with ROCm 7.2.1 an
 
 
 
+## Launch Command
+
+MoE config tune `E=256,N=128,...,int8_w8a16.json` (round-4 "B1'") dispatches automatically. No overlay mount needed; the tuned JSON is baked into the image.
+
+```bash
+docker run -d --name mi100-bench \
+  --network=host --cpuset-cpus="0-11" --group-add=video --ipc=host \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/kfd \
+  --device=/dev/dri/renderD128 --device=/dev/dri/renderD129 \
+  --device=/dev/dri/renderD130 --device=/dev/dri/renderD131 \
+  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 \
+  --env HF_HOME=/huggingface \
+  --env VLLM_ROCM_USE_AITER=1 \
+  --env VLLM_MI100_TORCH_COMPILE=1 \
+  --env VLLM_ROCM_USE_AITER_TRITON_GEMM=1 \
+  --env NCCL_ALGO=Tree --env NCCL_PROTO=LL \
+  -v ~/.cache/huggingface:/huggingface \
+  -v /path/to/models:/models:ro \
+  btbtyler09/vllm-rocm-gfx908:v0.20.0rc1.dev \
+  vllm serve /models/Qwen3.6-35B-A3B-GPTQ-8bit \
+    --served-model-name qwen3.6-35b-a3b-8bit \
+    --tensor-parallel-size 4 --dtype half --max-model-len 32768 \
+    --gpu-memory-utilization 0.92 \
+    --attention-backend TRITON_ATTN \
+    --compilation-config '{"mode": 3, "cudagraph_mode": "FULL_AND_PIECEWISE"}'
+```
+
 ## Performance Summary
 
 | Scenario | Category | Input (tok) | Output (tok) | Concurrency | Output Throughput (tok/s) | TTFT mean (ms) | TPOT mean (ms) | TPOT p99 (ms) |
