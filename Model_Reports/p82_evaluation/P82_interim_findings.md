@@ -71,16 +71,30 @@ gpu_model_runner). Properties:
 ## 32K-context production-safety stress (input 31744 / out 512 / c=4 / 60 prompts / ignore-eos)
 | arm | config | verdict |
 |---|---|---|
-| 1 | P82@0.1, **budget 32768** (=max_model_len) | ✅ **SURVIVED 60/60** |
-| 2 | **shipped MTP n=2** (default budget) | ✅ **SURVIVED 60/60** |
-| 3 | P82@0.1, budget 16384 | _in progress (expect crash: cliff moved 16K→32K)_ |
+| 1 | P82@0.1, **budget 32768** (=max_model_len) | ✅ SURVIVED 60/60 |
+| 2 | **shipped MTP n=2** (default budget) | ✅ SURVIVED 60/60 |
+| 3 | P82@0.1, budget 16384 | ✅ SURVIVED 60/60 |
 
-**Conclusions so far:** (a) `max_num_batched_tokens = max_model_len` makes
-aggressive P82 safe at **full 32K context** — a viable production setting; (b) the
-**already-shipped MTP n=2 is safe at 32K** (gap you flagged is closed); (c) a fixed
-16384 budget only moves the cliff to 32K (arm 3 pending confirmation) — so the real
-fix must be **context-aware** (bump budget to cover max input length), not a flat
-constant.
+**IMPORTANT caveat — this stress is WEAK evidence, not proof of 32K safety.**
+All three arms survived, BUT:
+- The original crash is **cumulative/mixed-shape** — it needed the full 12-tier
+  suite (~75 mixed requests, Single User 2K → Short Context 512 → Long Context 16K),
+  NOT a long-context burst. A standalone 16K Long-Context run (10 prompts) at the
+  *broken* budget 8192 also did NOT crash. So a pure 60×32K burst may simply not be
+  the faithful trigger, regardless of safety.
+- **No positive control:** none of the arms used the known-broken config
+  (budget 8192) at 32K, so we never confirmed the harness even reproduces the crash
+  at 32K. "Survived" might mean "safe" OR "wrong trigger."
+- Notably, pure-32K at budget 16384 survived **even though a 32K prompt still chunks
+  at 16384** — which argues *against* a simple chunk-boundary mechanism and *for* a
+  cumulative batch-composition trigger. Encouraging for budget 16384 being enough,
+  but unproven.
+
+**What's actually proven:** budget 16384 fixes the 16K case under faithful (full-
+suite) conditions; shipped MTP n=2 and P82@0.1 both shrug off a sustained 32K burst.
+**What's NOT proven:** P82@0.1 at budget 16384 under the *faithful cumulative* trigger
+at 32K. The definitive test = run the full 12-tier suite with the Long-Context tier
+set to ~31K input (at budget 16384, plus an 8192 positive control). Not yet run.
 
 ## OPEN before P82 can ship (do NOT open the follow-up PR until these close)
 1. **Commit the crash fix** in `rocm.py`: make the gfx908 MTP budget bump
