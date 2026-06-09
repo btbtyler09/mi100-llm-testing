@@ -110,3 +110,51 @@ set to ~31K input (at budget 16384, plus an 8192 positive control). Not yet run.
 5. Then: durable final report → open the P82 follow-up PR (Task #10) with tables.
 
 Raw JSONs in this dir (`results_p82_27b_n5_*.json`).
+
+---
+
+## Depth × threshold sweep (2026-06-09, 27B, default budget, report-gen skipped)
+n ∈ {2,3} × {strict, @0.1, @0.3} at SHIPPED/default budget. **ALL arms 0 failures —
+n=2 and n=3 P82 do NOT crash at default budget. The long-context crash is
+n=5-specific** (only the most aggressive acceptance pressure triggers it). So a
+stable P82 config ships without any buffer fix.
+
+Throughput (tok/s), key tiers:
+| arm | Single User c1 | Decode c1 | c=8 | c=32 | c=128 | acc-len |
+|---|---:|---:|---:|---:|---:|---:|
+| n2 strict | 70.4 | 85.5 | 172.6 | 338.4 | 419.3 | 2.47 |
+| n2 @0.1 | 78.8 | 98.2 | 191.4 | 364.8 | 440.0 | 2.81 |
+| n2 @0.3 | 75.8 | 96.4 | 182.6 | 356.3 | 432.2 | 2.68 |
+| n3 strict | 71.3 | 86.7 | 189.8 | 350.5 | 395.1 | 2.94 |
+| **n3 @0.1** | **84.1** | **103.5** | **214.0** | **383.2** | **427.6** | 3.54 |
+| n3 @0.3 | 80.9 | 97.4 | 207.1 | 368.2 | 416.2 | 3.41 |
+
+P82@0.1 lifts every depth (~+15% n2, ~+19% n3 on decode). **Peak is still n=5 P82
+(127 decode) but it's the only depth that crashes; n=3 @0.1 (103.5, stable) is the
+best ship-as-is config.** (Mixed Traffic tier flaked empty on the two strict arms —
+intermittent, not a crash; other 11 tiers full.)
+
+## QUALITY — P82 is substantially lossy (the gating finding)
+Divergence vs strict at the SAME seed (temp=1.0/top_k=20/top_p=0.95) — with a fixed
+seed, strict is deterministic, so divergence = pure P82 effect:
+| arm | exact-match | mean first-divergence | token-match |
+|---|---:|---:|---:|
+| n2 @0.1 | 2/20 (10%) | tok 30.6 | 25.8% |
+| n2 @0.3 | 4/20 (20%) | tok 35.0 | 33.8% |
+| n3 @0.1 | 2/20 (10%) | tok 22.0 | 20.4% |
+| n3 @0.3 | 4/20 (20%) | tok 32.8 | 31.2% |
+
+**P82@0.1 changes ~75-80% of tokens vs same-seed strict** (token-match only ~20-26%),
+diverging by token ~20-30. @0.3 is milder (~32% match) but still large. Interpretation:
+P82 pushes generation toward the draft model's high-prob predictions (more
+modal/greedy-like, less stochastic) — NOT obviously "wrong" (coherence passed), but a
+**large behavioral shift**. Divergence-from-stochastic-strict ≠ accuracy loss, so this
+is NOT conclusive on quality — it proves the cost is non-trivial and **mandates a
+task-accuracy eval (GSM8K/IFEval: strict vs @0.1 vs @0.3) before any default-on.**
+
+## Bottom line so far
+- **Speed:** real & stable. n=3 @0.1 = best shippable (+19% decode, no crash, no fix).
+  n=5 @0.1 = 127 peak but needs the context-aware budget fix.
+- **Quality:** P82 is meaningfully lossy (~75-80% token change @0.1). Coherent but
+  large shift → **task-accuracy eval is the next gate**, not optional.
+- Still pending: accuracy eval, 35B, then commit budget fix + open the PR.
