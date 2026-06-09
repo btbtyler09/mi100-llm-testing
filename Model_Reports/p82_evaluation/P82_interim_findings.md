@@ -152,9 +152,28 @@ modal/greedy-like, less stochastic) — NOT obviously "wrong" (coherence passed)
 is NOT conclusive on quality — it proves the cost is non-trivial and **mandates a
 task-accuracy eval (GSM8K/IFEval: strict vs @0.1 vs @0.3) before any default-on.**
 
-## Bottom line so far
-- **Speed:** real & stable. n=3 @0.1 = best shippable (+19% decode, no crash, no fix).
-  n=5 @0.1 = 127 peak but needs the context-aware budget fix.
-- **Quality:** P82 is meaningfully lossy (~75-80% token change @0.1). Coherent but
-  large shift → **task-accuracy eval is the next gate**, not optional.
-- Still pending: accuracy eval, 35B, then commit budget fix + open the PR.
+## ACCURACY EVAL — GSM8K (the gate): P82 is accuracy-NEUTRAL
+n=3, 300 questions, thinking mode, temp=0.6, fixed seed (so strict vs P82 draw the
+same uniforms — delta is pure P82 effect):
+| config | GSM8K | Δ vs strict |
+|---|---:|---:|
+| n3 strict | 275/300 = 91.7% | — |
+| n3 @0.1 | 276/300 = 92.0% | +0.3pp |
+| n3 @0.3 | 282/300 = 94.0% | +2.3pp |
+
+**No degradation.** Deltas are within the ±~3% noise band (300 Q), so "neutral," not
+"@0.3 better." Despite ~75-80% token divergence, final answers are equally correct —
+**divergence ≠ accuracy loss**, confirmed. P82 pushes generation toward the draft's
+high-prob predictions (more modal/focused), which doesn't hurt math correctness.
+Caveats: one task (math = most correctness-sensitive, strong but not total); 300 Q.
+IFEval (instruction-following) not yet run (no lm-eval in image).
+
+## Bottom line — P82 SHIPS (pending 35B spot-check)
+- **Ship config: n=3 @0.1.** +19% decode / +18% single-user over n=3 strict, +19% over
+  old n=5-strict peak. Stable at default budget (no crash, no buffer fix). Accuracy-
+  neutral on GSM8K. ~6% faster than @0.3 at equal accuracy.
+- **n=5 @0.1 = 127 peak** (interactive/single-user) but needs the context-aware budget
+  fix and only wins at c=1 (loses to n=2/n=3 at high concurrency). Optional follow-up.
+- **Remaining:** 35B-A3B spot-check (throughput + GSM8K) → write final report → open the
+  P82 follow-up PR (env-gated, default OFF; document n=3 @0.1 as the recommended config).
+  Optional: IFEval for belt-and-suspenders; n=5 budget fix if interactive matters.
