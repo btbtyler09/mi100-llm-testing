@@ -168,7 +168,21 @@ high-prob predictions (more modal/focused), which doesn't hurt math correctness.
 Caveats: one task (math = most correctness-sensitive, strong but not total); 300 Q.
 IFEval (instruction-following) not yet run (no lm-eval in image).
 
-## Bottom line — P82 SHIPS (pending 35B spot-check)
+## 35B-A3B (MoE) spot-check — story transfers, gains even bigger
+n=3, default budget, throughput (12-tier) + GSM8K (300 Q):
+| metric | n3 strict | n3 @0.1 | Δ |
+|---|---:|---:|---:|
+| Single User c1 | 127.4 | 160.8 | **+26.2%** |
+| Decode Stress c1 | 155.6 | 193.1 | **+24.1%** |
+| c=128 | 1412.6 | 1532.2 | +8.5% |
+| GSM8K | 88.7% | 90.0% | +1.3pp (neutral) |
+| failures | 0 | **0** | stable |
+
+MoE confirms the dense-27B result: P82@0.1 stable at default budget (no crash), big
+decode lift (+24-26% c1), accuracy-neutral. Absolute throughput higher than 27B
+(sparse ~3B active). **P82 validated across both model classes.**
+
+## Bottom line — P82 SHIPS (validated on dense 27B + MoE 35B)
 - **Ship config: n=3 @0.1.** +19% decode / +18% single-user over n=3 strict, +19% over
   old n=5-strict peak. Stable at default budget (no crash, no buffer fix). Accuracy-
   neutral on GSM8K. ~6% faster than @0.3 at equal accuracy.
