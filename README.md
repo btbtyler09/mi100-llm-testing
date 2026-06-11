@@ -5,6 +5,12 @@ This is a repository for documenting the setup and performance of MI100s in popu
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
 
+**6/11/2026 Update — v0.21 + 439-commit AITER sync (Unified Attention fixed)**
+* New `:latest` = `btbtyler09/vllm-rocm-gfx908:v0.21.0rc1.dev-aitersync` (vLLM v0.21.0rc1+mi100, AITER pinned to the 439-commit upstream sync `395f84533`).
+* **The AITER Unified Attention (UA) state-corruption bug on gfx908 is fixed.** A ~1,200-request soak under the production config (MTP n=3 + P82) stays coherent pre+post — well past the old ~200-request failure threshold.
+* On **dense GPTQ-8 models running MTP**, UA is now the *faster* backend: **+15% throughput on long-output dataset generation (4k in / 6k out), +6–8% interactive (c=1), +29% long-context (16K)**. The win is MTP-specific (UA ≈ Triton without MTP) and architecture-specific (MoE shows the opposite). Enable with `VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1` (and drop `--attention-backend`). `TRITON_ATTN` stays the default and is ~10% better for short-context high-throughput.
+* Full eval: [`Model_Reports/ua_eval_27B_2026-06-11.md`](Model_Reports/ua_eval_27B_2026-06-11.md).
+
 **4/26/2026 Update — Round-3 MI100 patches (custom ops + NCCL Tree+LL)**
 * Qwen3.6 family rebenchmarked on the same v0.19.2rc1+mi100 image plus Round-3 patches: `5h` custom operators and `5j` NCCL Tree+LL all-reduce path.
 * Notable wins on Qwen3.6-35B-A3B-GPTQ-8bit: peak aggregate throughput 1365.89 tok/s at c=128 with TPOT 10.87 ms at c=1.
@@ -24,20 +30,20 @@ vLLM officially supports MI200 and MI300 series GPUs, but older cards like the M
 * Tested with GPTQ quantized models (4-bit and 8-bit). Recommended quant providers on HuggingFace: jart25, QuantTrio, cpatonn, or my own (btbtyler09).
 
 **Known issues:**
-* AITER Unified Attention is disabled on gfx908 — it corrupts model state after ~200+ sustained requests, causing degenerate repetitive output. The default Triton Attention backend is stable and performance-equivalent.
+* AITER Unified Attention (UA) **was fixed in the 6/11/2026 `:latest` image** (439-commit AITER sync). It previously corrupted model state after ~200+ sustained requests on gfx908. UA is now stable and, on dense GPTQ-8 + MTP workloads, faster than Triton (see the 6/11 update). It remains opt-in (`VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1`); `TRITON_ATTN` is still the default. On older images (≤ v0.19) UA must stay off.
 * GPTQ models require `--dtype half` (float16). bfloat16 will cause errors.
 * `HSA_OVERRIDE_GFX_VERSION` is no longer needed with native gfx908 support.
 
 ## Pull the prebuilt container from Docker Hub
 
 ```bash
-docker pull btbtyler09/vllm-rocm-gfx908:v0.19.2rc1
+docker pull btbtyler09/vllm-rocm-gfx908:latest
 ```
 
 Start a container with GPU access:
 * Specify render devices for your GPUs (renderD128 = GPU 0, incrementing from there).
 * Mount your HuggingFace cache to avoid re-downloading models.
-* `VLLM_ROCM_USE_AITER=1` enables AITER's Triton-based kernels for gfx908. All other AITER flags are auto-configured — CK ops, FP8/FP4, and Unified Attention are automatically disabled, while Triton RoPE is enabled. No other env vars are needed.
+* `VLLM_ROCM_USE_AITER=1` enables AITER's Triton-based kernels for gfx908. All other AITER flags are auto-configured — CK ops and FP8/FP4 are disabled, Triton RoPE is enabled, and `TRITON_ATTN` is the default backend. Unified Attention is now stable (6/11 image) but stays opt-in via `VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1`.
 
 ```bash
 docker run -it \
@@ -55,7 +61,7 @@ docker run -it \
   --env VLLM_ROCM_USE_AITER=1 \
   --env HF_HOME=/huggingface \
   -v /home/{user}/.cache/huggingface:/huggingface \
-  btbtyler09/vllm-rocm-gfx908:v0.19.2rc1 \
+  btbtyler09/vllm-rocm-gfx908:latest \
   bash
 ```
 
@@ -73,7 +79,7 @@ docker run -d --name mi100-bench \
   --env VLLM_MI100_TORCH_COMPILE=1 \
   -v ~/.cache/huggingface:/huggingface \
   -v /path/to/models:/models \
-  btbtyler09/vllm-rocm-gfx908:v0.19.2rc1 \
+  btbtyler09/vllm-rocm-gfx908:latest \
   vllm serve /models/Qwen3.6-35B-A3B-GPTQ-4bit \
     --served-model-name qwen3.6-35b-4bit \
     --tensor-parallel-size 4 \
@@ -98,7 +104,7 @@ docker run -d --name mi100-bench \
 * `--dtype half` — fp16. Required for GPTQ on MI100 (no bfloat16 support in the kernels we use).
 * `--max-model-len 32768` — KV-cache max context. Raise if you have memory headroom; lower for single-GPU runs.
 * `--gpu-memory-utilization 0.92` — fraction of VRAM vLLM reserves. 0.75 is conservative; 0.92–0.94 is what the benchmarks used; 0.95+ risks OOM on the 122B model.
-* `--attention-backend TRITON_ATTN` — the stable attention backend on gfx908. AITER's Unified Attention (UA) is known to corrupt model state after ~200 sustained requests on MI100 and must stay off.
+* `--attention-backend TRITON_ATTN` — the default backend on gfx908; best for short-context high-throughput. For **dense GPTQ-8 + MTP** workloads (dataset generation, interactive, long context), drop this flag and set `VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1` instead — Unified Attention is ~15% faster there on the 6/11 image (and the old corruption bug is fixed). On images ≤ v0.19, keep TRITON_ATTN and leave UA off.
 * `--compilation-config '{"mode": 3, "cudagraph_mode": "FULL_AND_PIECEWISE"}'` — enables `torch.compile` (mode 3 = max autotune) with a full CUDA-graph for the decode path plus piecewise graphs for prefill. This is the main decode-throughput win in v0.19 vs. v0.16.
 
 ## Build from source
@@ -122,7 +128,12 @@ DOCKER_BUILDKIT=1 docker build \
 
 ## Benchmark Results
 
-Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs (gfx908) via vLLM v0.19.2rc1+mi100 with AITER (TRITON_ATTN, compile+piecewise). Full interactive charts with legend toggle are available in the [interactive dashboard](charts/benchmark_charts.html). Detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs (gfx908) via vLLM with AITER (compile+piecewise). The fleet charts below are a v0.19.2rc1+mi100 snapshot (TRITON_ATTN). The newest results — the v0.21 + AITER-sync UA-vs-Triton backend evaluation on Qwen3.6-27B-GPTQ-8bit — are in [`Model_Reports/ua_eval_27B_2026-06-11.md`](Model_Reports/ua_eval_27B_2026-06-11.md). Full interactive charts with legend toggle are in the [interactive dashboard](charts/benchmark_charts.html); detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+
+### UA vs TRITON_ATTN backend — Qwen3.6-27B-GPTQ-8bit (MTP n=3 + P82, 6/11)
+![UA vs TRITON_ATTN](charts/ua_vs_triton_27b.png)
+
+Unified Attention wins interactive (c=1 +8%), decode (+6%), long-context (16K +29%), and **dataset generation (4k in / 6k out: +15%)**; TRITON_ATTN wins short-context batch (c=16 −10%); mid/high concurrency is a tie. Regenerate with `python generate_ua_chart.py`. The fleet charts below are the v0.19 TRITON snapshot.
 
 ### Single-User Prefill & Decode (c=1)
 ![Prefill & Decode Comparison](charts/pp_tg_comparison.png)
@@ -156,5 +167,7 @@ Pre-quantized models on HuggingFace:
 
 | Tag | vLLM Version | AITER | Notes |
 |-----|-------------|-------|-------|
-| `v0.19.2rc1` | 0.19.2rc1 | Yes | **Latest** — TRITON_ATTN + compile+piecewise + Round-3 MI100 patches, ROCm 7.2.1 |
+| `latest` / `v0.21.0rc1.dev-aitersync` | 0.21.0rc1.dev | Yes (439-commit sync, `395f84533`) | **Latest** — UA state-corruption fixed; UA faster than Triton for dense GPTQ-8 + MTP. TRITON_ATTN still default. ROCm 7.2.3 |
+| `v0.21.0rc1.dev` | 0.21.0rc1.dev | Yes (pre-sync) | Historical — v0.21 upstream sync before the AITER UA fix |
+| `v0.19.2rc1` | 0.19.2rc1 | Yes | TRITON_ATTN + compile+piecewise + Round-3 MI100 patches, ROCm 7.2.1 |
 | `v0.16.1.dev` | 0.16.1.dev | Yes | Deprecated — earlier AITER Triton ops, UA-OFF fix |
