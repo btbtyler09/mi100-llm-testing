@@ -430,6 +430,8 @@ def run_benchmark(
     base_url: str,
     scenario: dict,
     tokenizer: str | None = None,
+    dataset: str = "random",
+    dataset_path: str | None = None,
 ) -> BenchmarkResult:
     """Run a single benchmark scenario"""
 
@@ -445,19 +447,33 @@ def run_benchmark(
         "vllm", "bench", "serve",
         "--base-url", base_url,
         "--model", model,
-        "--dataset-name", "random",
-        "--random-input-len", str(scenario["input_len"]),
-        "--random-output-len", str(scenario["output_len"]),
         "--max-concurrency", str(scenario["concurrency"]),
         "--num-prompts", str(scenario["num_prompts"]),
         "--request-rate", str(scenario.get("request_rate", "inf")),
     ]
+    if dataset == "sonnet":
+        # Real-text prompts (Shakespeare sonnets). Length controlled via
+        # sonnet-*-len; prefix-len must be < input-len. Sonnet draws lines from
+        # the corpus and pads with a shared prefix, so very long inputs (>~2k)
+        # may be approximate or fail for the largest tiers.
+        cmd += [
+            "--dataset-name", "sonnet",
+            "--dataset-path", dataset_path or "/app/vllm/benchmarks/sonnet.txt",
+            "--sonnet-input-len", str(scenario["input_len"]),
+            "--sonnet-output-len", str(scenario["output_len"]),
+            "--sonnet-prefix-len", str(min(50, max(1, scenario["input_len"] // 4))),
+        ]
+    else:
+        cmd += [
+            "--dataset-name", "random",
+            "--random-input-len", str(scenario["input_len"]),
+            "--random-output-len", str(scenario["output_len"]),
+        ]
+        if scenario.get("range_ratio"):
+            cmd.extend(["--random-range-ratio", str(scenario["range_ratio"])])
     if tokenizer:
         cmd.extend(["--tokenizer", tokenizer])
-    
-    if scenario.get("range_ratio"):
-        cmd.extend(["--random-range-ratio", str(scenario["range_ratio"])])
-    
+
     if scenario.get("extra_args"):
         cmd.extend(scenario["extra_args"])
     
@@ -1048,6 +1064,20 @@ def main():
              "Use this when --model is a served-name alias rather than an HF id/path."
     )
     parser.add_argument(
+        "--dataset",
+        default="random",
+        choices=["random", "sonnet"],
+        help="Benchmark dataset: 'random' (synthetic tokens) or 'sonnet' "
+             "(real Shakespeare text — needed for fair speculative-decode/MTP "
+             "acceptance measurement)."
+    )
+    parser.add_argument(
+        "--dataset-path",
+        default=None,
+        help="Path to dataset corpus inside the bench client (e.g. sonnet.txt). "
+             "Defaults to /app/vllm/benchmarks/sonnet.txt for --dataset sonnet."
+    )
+    parser.add_argument(
         "--base-url",
         default="http://localhost:8000",
         help="vLLM server base URL (default: http://localhost:8000)"
@@ -1149,11 +1179,13 @@ def main():
             "concurrency": 1,
             "num_prompts": 3,
         }
-        run_benchmark(args.model, args.base_url, warmup_scenario, args.tokenizer)
+        run_benchmark(args.model, args.base_url, warmup_scenario, args.tokenizer,
+                      dataset=args.dataset, dataset_path=args.dataset_path)
         print("Warmup complete.\n")
 
         for scenario in suite.scenarios:
-            result = run_benchmark(args.model, args.base_url, scenario, args.tokenizer)
+            result = run_benchmark(args.model, args.base_url, scenario, args.tokenizer,
+                                   dataset=args.dataset, dataset_path=args.dataset_path)
             results.append(result)
             
             # Brief pause between benchmarks
