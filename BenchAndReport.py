@@ -70,6 +70,7 @@ class BenchmarkResult:
     itl_mean_ms: float = 0.0
     itl_median_ms: float = 0.0
     itl_p99_ms: float = 0.0
+    ttlt_mean_ms: float = 0.0  # time-to-last-token: ttft + (out-1)*tpot
     
     # Derived metrics
     pp_speed: float = 0.0  # Prefill tokens/sec
@@ -259,8 +260,8 @@ def _scenario_category(name: str) -> str:
 def build_performance_summary_table(results: list[BenchmarkResult]) -> str:
     header = (
         "| Scenario | Category | Input (tok) | Output (tok) | Concurrency | Output Throughput (tok/s) | "
-        "TTFT mean (ms) | TPOT mean (ms) | TPOT p99 (ms) |\n"
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|"
+        "TTFT mean (ms) | TPOT mean (ms) | TPOT p99 (ms) | TTLT mean (s) |\n"
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
     )
     rows = []
     for r in results:
@@ -283,6 +284,7 @@ def build_performance_summary_table(results: list[BenchmarkResult]) -> str:
                     _format_float(r.ttft_mean_ms, 2),
                     _format_float(r.tpot_mean_ms, 2),
                     _format_float(r.tpot_p99_ms, 2),
+                    _format_float(r.ttft_mean_ms / 1000 + max(0, r.output_len - 1) * r.tpot_mean_ms / 1000, 1),
                 ]
             )
             + " |"
