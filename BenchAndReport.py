@@ -427,6 +427,37 @@ def parse_benchmark_output(output: str) -> dict:
     return metrics
 
 
+_MIXED_CORPUS = None
+
+
+def _mixed_scenario_jsonl(
+    scenario: dict, corpus_dir: str | None, tokenizer: str | None
+) -> str:
+    """Assemble (and cache) the custom-format JSONL for one scenario."""
+    global _MIXED_CORPUS
+    import sys
+    import tempfile
+    corpus_dir = corpus_dir or "/bench_corpus"
+    if _MIXED_CORPUS is None:
+        sys.path.insert(0, corpus_dir)
+        from mixed_dataset import MixedCorpus
+        if not tokenizer:
+            raise ValueError("--dataset mixed requires --tokenizer (a local path)")
+        _MIXED_CORPUS = MixedCorpus(corpus_dir, tokenizer)
+    workdir = os.path.join(tempfile.gettempdir(), "mixed_bench")
+    os.makedirs(workdir, exist_ok=True)
+    safe = scenario["name"].lower().replace(" ", "_").replace("(", "").replace(")", "")
+    path = os.path.join(workdir, f"{safe}.jsonl")
+    if not os.path.exists(path):
+        _MIXED_CORPUS.write_jsonl(
+            path,
+            num_prompts=scenario["num_prompts"],
+            input_len=scenario["input_len"],
+            output_len=scenario["output_len"],
+        )
+    return path
+
+
 def run_benchmark(
     model: str,
     base_url: str,
@@ -464,6 +495,18 @@ def run_benchmark(
             "--sonnet-input-len", str(scenario["input_len"]),
             "--sonnet-output-len", str(scenario["output_len"]),
             "--sonnet-prefix-len", str(min(50, max(1, scenario["input_len"] // 4))),
+        ]
+    elif dataset == "mixed":
+        # Mixed-domain real text (wiki/code/book prose + chat at short
+        # lengths), round-robin per prompt, length-controlled by tokenizer
+        # count. dataset_path is the bench_corpus directory; prompts are
+        # assembled into a per-scenario custom JSONL. See
+        # bench_corpus/mixed_dataset.py for domain rules.
+        jsonl = _mixed_scenario_jsonl(scenario, dataset_path, tokenizer)
+        cmd += [
+            "--dataset-name", "custom",
+            "--dataset-path", jsonl,
+            "--custom-output-len", str(scenario["output_len"]),
         ]
     else:
         cmd += [
@@ -1068,10 +1111,13 @@ def main():
     parser.add_argument(
         "--dataset",
         default="random",
-        choices=["random", "sonnet"],
-        help="Benchmark dataset: 'random' (synthetic tokens) or 'sonnet' "
+        choices=["random", "sonnet", "mixed"],
+        help="Benchmark dataset: 'random' (synthetic tokens), 'sonnet' "
              "(real Shakespeare text — needed for fair speculative-decode/MTP "
-             "acceptance measurement)."
+             "acceptance measurement), or 'mixed' (multi-domain real text: "
+             "wiki/code/book prose + chat at short lengths; --dataset-path "
+             "is the bench_corpus dir with corpus.json + mixed_dataset.py, "
+             "and --tokenizer must be a local path)."
     )
     parser.add_argument(
         "--dataset-path",
@@ -1193,11 +1239,33 @@ def main():
             # Brief pause between benchmarks
             time.sleep(2)
         
+        # Mixed dataset: per-domain speculative-decode acceptance diagnostic
+        # (c=1 mini-runs, acceptance from /metrics deltas; skipped when the
+        # server has no active spec-decode config).
+        domain_acceptance = {}
+        if args.dataset == "mixed":
+            try:
+                import tempfile
+                from mixed_dataset import acceptance_by_domain  # path set in assembler
+                print("\nMeasuring spec-decode acceptance by domain...")
+                domain_acceptance = acceptance_by_domain(
+                    _MIXED_CORPUS, args.base_url, args.model,
+                    os.path.join(tempfile.gettempdir(), "mixed_bench"),
+                    tokenizer=args.tokenizer,
+                )
+                for d, m in domain_acceptance.items():
+                    print(f"  {d}: draft acceptance {m['draft_acceptance_rate']:.1%}")
+            except Exception as e:
+                print(f"acceptance-by-domain skipped: {e}")
+
         # Optionally save raw results
         if args.save_results:
             results_file = f"benchmark_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             with open(results_file, 'w') as f:
-                json.dump([asdict(r) for r in results], f, indent=2)
+                payload = [asdict(r) for r in results]
+                if domain_acceptance:
+                    payload.append({"domain_acceptance": domain_acceptance})
+                json.dump(payload, f, indent=2)
             print(f"\nRaw results saved to: {results_file}")
     
     # Generate report using the model (interactive UX is the default priority).
