@@ -16,6 +16,43 @@ Note: This report was written by the model being benchmarked.
 
 
 
+## Run Configuration
+
+Image: `btbtyler09/vllm-rocm-gfx908:v0.27.4rc2.dev` (= `:latest`, digest `74933ffe`). The suite ran the identical code as an overlay on the rc1 base; rc2 bakes those fixes in (fork commit `89ee11515f`), so the command below is the canonical reproduction.
+
+```bash
+docker run -d --name vllm-serve \
+  --network=host --cpuset-cpus="0-11" --group-add=video --ipc=host \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/kfd \
+  --device=/dev/dri/renderD128 --device=/dev/dri/renderD129 \
+  --device=/dev/dri/renderD130 --device=/dev/dri/renderD131 \
+  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 --env HF_HOME=/huggingface \
+  --env VLLM_ROCM_USE_AITER=1 --env VLLM_ROCM_USE_AITER_CUSTOM_AR=0 \
+  --env VLLM_MI100_TORCH_COMPILE=1 \
+  --env VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0 \
+  --env VLLM_GFX908_EAGLE_DROP_ATTN_ONLY=1 \
+  -v /home/tyler/.cache/huggingface:/huggingface \
+  -v /home/tyler/quantize/quant:/models \
+  btbtyler09/vllm-rocm-gfx908:v0.27.4rc2.dev \
+  vllm serve /models/Qwen3.8-27B-GPTQ-4bit_foem-lmh8 \
+    --served-model-name qwen38-27b \
+    --tensor-parallel-size 4 --dtype half --attention-backend TRITON_ATTN \
+    --max-model-len 32768 --gpu-memory-utilization 0.92 \
+    --max-num-batched-tokens 8192 \
+    --speculative-config '{"method":"dflash","model":"/models/Qwen3.8-27B-DFlash2","num_speculative_tokens":5}'
+```
+
+Env notes: `VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0` doubles the KV pool (262k -> 529k tokens) by not pre-reserving an over-estimated cudagraph arena; `VLLM_GFX908_EAGLE_DROP_ATTN_ONLY=1` restores prefix caching under DFlash on this hybrid model (0 -> 5712/6952 hits, ~5x TTFT on shared prefixes). Custom allreduce stays OFF on this spec arm (multi-row payloads fall back to NCCL). Requires the DFlash2 drafter checkpoint at `/models/Qwen3.8-27B-DFlash2`.
+
+Benchmark (run inside the container):
+
+```bash
+python3 BenchAndReport.py --model qwen38-27b \
+  --tokenizer /models/Qwen3.8-27B-GPTQ-4bit_foem-lmh8 \
+  --dataset sonnet --scaffolded-report --save-results
+```
+
 ## Executive Summary
 
 For qwen38-27b on 4× AMD Instinct MI100 (gfx908), the interactive-recommended concurrency is c=2, yielding about 46.8 tok/s per user with favorable TTFT and TPOT p99 performance. Aggregate throughput can reach a secondary peak of 436.10 tok/s at c=128, but with significantly higher tail latency, making it suitable primarily for high-capacity workloads rather than interactive use. The lowest observed TPOT was 10.41 ms, indicating smooth decode behavior under lighter decode stress.

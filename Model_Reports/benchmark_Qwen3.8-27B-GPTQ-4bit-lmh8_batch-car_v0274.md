@@ -16,6 +16,40 @@ Note: This report was written by the model being benchmarked.
 
 
 
+## Run Configuration
+
+Image: `btbtyler09/vllm-rocm-gfx908:v0.27.4rc1.dev` (clean from-source build; `v0.27.4rc2.dev`/`:latest` is identical plus env-gated spec-decode fixes that are inert in this no-spec config).
+
+```bash
+docker run -d --name vllm-serve \
+  --network=host --cpuset-cpus="0-11" --group-add=video --ipc=host \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/kfd \
+  --device=/dev/dri/renderD128 --device=/dev/dri/renderD129 \
+  --device=/dev/dri/renderD130 --device=/dev/dri/renderD131 \
+  --env HSA_OVERRIDE_GFX_VERSION=9.0.8 --env HF_HOME=/huggingface \
+  --env VLLM_ROCM_USE_AITER=1 --env VLLM_ROCM_USE_AITER_CUSTOM_AR=1 \
+  --env VLLM_MI100_TORCH_COMPILE=1 \
+  -v /home/tyler/.cache/huggingface:/huggingface \
+  -v /home/tyler/quantize/quant:/models \
+  btbtyler09/vllm-rocm-gfx908:v0.27.4rc2.dev \
+  vllm serve /models/Qwen3.8-27B-GPTQ-4bit_foem-lmh8 \
+    --served-model-name qwen38-27b \
+    --tensor-parallel-size 4 --dtype half --attention-backend TRITON_ATTN \
+    --max-model-len 32768 --gpu-memory-utilization 0.92 \
+    --max-num-batched-tokens 8192
+```
+
+Env notes: `VLLM_ROCM_USE_AITER_CUSTOM_AR=1` enables the AITER custom allreduce (its real wins on this arm are Long-16K 79->81 and single-user TTFT ~710->566ms; batch tiers are CAR-neutral). No speculative config — spec decode loses 25-35% at c>=32. AR+RMS fusion is automatically disabled when CAR is on (the combination corrupts output on gfx908, guarded in the image).
+
+Benchmark (run inside the container):
+
+```bash
+python3 BenchAndReport.py --model qwen38-27b \
+  --tokenizer /models/Qwen3.8-27B-GPTQ-4bit_foem-lmh8 \
+  --dataset sonnet --scaffolded-report --save-results
+```
+
 ## Executive Summary
 
 qwen38-27b on 4× AMD Instinct MI100 (gfx908) has its interactive sweet spot at concurrency 2, balancing TTFT/TPOT p99 with roughly 48.6 tokens/s per user. Decode performance is strongest under light load, with a best observed TPOT of 14.93 ms in the Decode Stress Test. Aggregate throughput scales secondarily to 625.46 tokens/s at concurrency 128, but with much higher latency and lower per-user speed.
