@@ -16,6 +16,22 @@ Note: This report was written by the model being benchmarked.
 
 
 
+rc5 = rc4 + round 8 (vllm-gfx908 `qwen38-flash-next` @ `59255ea5cd`; image
+`btbtyler09/vllm-rocm-gfx908:v0.28.0rc5.dev-q38fn`, every gfx908 extension prebuilt and all validated
+flags baked as ENV; reproduce with `scripts/serve_qwen38_flash_next_rc5.sh`): fused hyper-connection
+chain extended to 4 concurrent tokens (with the M<=3 kernels kept byte-identical in their own module),
+tie-stable QSA indexer top-k on by default (long-context greedy output is now reproducible run to run),
+and a tuned MoE Triton config for 8192-row prefill chunks. Same corpus and tiers as the rc4 report:
+
+| tier | rc4 | rc5 |
+|---|---|---|
+| Single User TTFT / TPOT | 663 ms / 11.2 ms | 541 ms / 11.4 ms |
+| Decode Stress (c=1, 2048 out) | 89.6 tok/s | 89.2 tok/s |
+| Long Context 16K (c=4) tok/s, TTFT / TPOT | 107.6, 9.4 s / 23.8 ms | 115.8, 9.0 s / 21.6 ms |
+| Short Context c=16 tok/s, TTFT | 251.6, 2.35 s | 276.0, 1.87 s |
+| Mixed c=8 | 260.6 tok/s | 264.9 tok/s |
+| c=4 / c=32 / c=64 / c=128 | 164 / 360 / 338 / 379 tok/s | 175 / 357 / 341 / 387 tok/s |
+
 ## Executive Summary
 
 Benchmarking qwen38-flash-next on 4× AMD Instinct MI100 (gfx908) prioritized responsive interactive UX over raw aggregate throughput. The recommended interactive sweet spot is c=2, giving strong TTFT/TPOT behavior with about 54.0 tokens/s per user. Aggregate throughput peaks secondarily at c=128 with 386.91 tokens/s, while the best decode timing is 11.08 ms TPOT in the Decode Stress Test.
