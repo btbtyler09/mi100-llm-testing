@@ -31,6 +31,8 @@ strict extension loaders. Same corpus and tiers as the rc6 report:
 | Mixed c=8 | 323.1 tok/s | 343.3 tok/s |
 | c=4 / c=16 / c=32 / c=64 / c=128 | 207.5 / 508.8 / 534.4 / 482.7 / 539.1 tok/s | 222.5 / 531.8 / 546.5 / 582.4 / 549.1 tok/s |
 
+Kernel-by-kernel map of one decode step on this stack: [`docs/qwen38_flash_next_decode_step_map.md`](../docs/qwen38_flash_next_decode_step_map.md).
+
 ## Executive Summary
 
 On 4× AMD Instinct MI100 (gfx908), qwen38-flash-next delivers responsive decoding, reaching an observed lowest TPOT of 9.85 ms in the decode stress test. The interactive sweet spot is c=2, where users see roughly 65.0 tokens/s with the best TTFT/TPOT p99 balance for low-latency conversations. Peak aggregate throughput reaches 582.39 tokens/s at c=64, but this higher concurrency is secondary because it sacrifices per-user interactivity.

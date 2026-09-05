@@ -1,0 +1,209 @@
+<title>Flash-Next Decode Step Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#eef1f5; --bg2:#f7f8fa; --ink:#1a2430; --ink2:#4a5664; --rule:#c9d0d8; --rule2:#e1e5ea;
+  --acc:#3b4ea6; --gemv:#3b4ea6; --attn:#1f7a6d; --coll:#a3472a; --glue:#6b7683; --host:#8a6d1f;
+  --chipbg:#e4e8ef; --barbg:#dde2e9;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141a; --bg2:#151b22; --ink:#e6ebf1; --ink2:#a5b0bc; --rule:#2b3542; --rule2:#1f2830;
+    --acc:#8c9ce6; --gemv:#8c9ce6; --attn:#5fbfae; --coll:#e08a6a; --glue:#98a3ae; --host:#d2b45f;
+    --chipbg:#1e2731; --barbg:#1b232c; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --bg2:#151b22; --ink:#e6ebf1; --ink2:#a5b0bc; --rule:#2b3542; --rule2:#1f2830;
+  --acc:#8c9ce6; --gemv:#8c9ce6; --attn:#5fbfae; --coll:#e08a6a; --glue:#98a3ae; --host:#d2b45f;
+  --chipbg:#1e2731; --barbg:#1b232c; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+main{max-width:1080px;margin:0 auto;padding:40px 24px 80px}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:40px;line-height:1.05;letter-spacing:-0.01em}
+h2{font-size:22px;margin-top:44px;padding-top:14px;border-top:2px solid var(--ink)}
+h3{font-size:17px;color:var(--ink2);margin-top:22px}
+p{max-width:68ch}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px}
+.lede{color:var(--ink2);max-width:72ch;margin-top:12px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:18px 0 6px;font-size:13px;color:var(--ink2)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.bar{display:flex;height:34px;border-radius:3px;overflow:hidden;background:var(--barbg);margin:10px 0 6px}
+.bar div{display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
+.bar div small{opacity:.85;margin-left:6px}
+.barlabels{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.barlabels b{color:var(--ink);font-weight:500}
+.tracewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--bg2);margin-top:14px}
+table{border-collapse:collapse;width:100%;min-width:860px;font-variant-numeric:tabular-nums}
+th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule)}
+td{padding:7px 12px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.n{font-family:"IBM Plex Mono",monospace;color:var(--ink2);width:44px;text-align:right}
+td.k{font-family:"IBM Plex Mono",monospace;font-size:13px}
+td.r{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:13px;white-space:nowrap}
+td.d{color:var(--ink2);font-size:13.5px}
+.chip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.04em;padding:1px 7px;border-radius:2px;background:var(--chipbg);color:var(--ink);border-left:3px solid var(--c);white-space:nowrap}
+tr.sec td{background:var(--chipbg);font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;padding:8px 12px}
+tr.sec td span{font-family:"IBM Plex Mono",monospace;font-weight:400;font-size:12px;color:var(--ink2);margin-left:10px}
+.note{font-size:13.5px;color:var(--ink2);max-width:76ch;margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:8px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}h1{font-size:32px}}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;font-variant-numeric:tabular-nums;margin-top:8px}
+.kv b{font-weight:500;font-family:"IBM Plex Mono",monospace;font-size:13px}
+.kv span{color:var(--ink2)}
+a{color:var(--acc)}
+</style>
+<main>
+<div class="eyebrow">Qwen3.8-Flash-Next · GPTQ-4bit · 4× MI100 (gfx908) · TP4 · rc7 tree + push AR · one token, one step</div>
+<h1>Flash-Next Decode Step Map</h1>
+<p class="lede">Every kernel the captured FULL graph launches for one decode token at c=1, in order, with the bytes it streams per rank and its graph-timed cold cost. Layers repeat: the GDN block runs 36 times, the sparse-attention (QSA) block 12 times. Times are per launch; the step total is what the in-server timer measures.</p>
+
+<div class="legend">
+  <span style="--c:var(--gemv)">GEMV / GEMM (weights stream)</span>
+  <span style="--c:var(--attn)">attention & state</span>
+  <span style="--c:var(--coll)">TP collective</span>
+  <span style="--c:var(--glue)">glue (norm, cast, gather, sort)</span>
+  <span style="--c:var(--host)">host / eager</span>
+</div>
+
+<h2>Where 9.55 ms goes</h2>
+<p class="note">Kernel bodies alone sum to about 5.9 ms of graph-timed cold time. The rest of the measured step is what a ~1,050-node graph costs on this GPU: 1.4–1.8 µs of dispatch per node, launch tails, all-reduce skew across four ranks, and the eager pre-step metadata plus the logits gather at the boundary.</p>
+<div class="bar" aria-label="step budget">
+  <div style="width:40%;background:var(--gemv)">GDN layers ×36<small>3.8 ms</small></div>
+  <div style="width:18%;background:var(--attn)">QSA ×12<small>1.7 ms</small></div>
+  <div style="width:4%;background:var(--host)">edges</div>
+  <div style="width:17%;background:var(--glue)">dispatch<small>~1.6</small></div>
+  <div style="width:9%;background:var(--coll)">AR+skew</div>
+  <div style="width:12%;background:var(--ink2)">boundary</div>
+</div>
+<div class="barlabels">
+  <span><b>3.8 ms</b> GDN layer bodies (36 × ~105 µs)</span>
+  <span><b>1.7 ms</b> QSA layer bodies (12 × ~145 µs at 3K context)</span>
+  <span><b>0.4 ms</b> prologue, PLE layer, lm_head, sampler</span>
+  <span><b>~1.6 ms</b> per-node dispatch (~1,050 nodes × 1.44 µs)</span>
+  <span><b>~0.8 ms</b> all-reduce floor (98 × 5.3 µs) + rank waits</span>
+  <span><b>~1.2 ms</b> step boundary: eager metadata, logits gather, tails</span>
+</div>
+
+<h3>Bytes streamed per rank per token: 1.91 GB, floor 1.6–1.9 ms at HBM2 speed</h3>
+<div class="bar" aria-label="byte ledger">
+  <div style="width:33%;background:var(--gemv)">HC mixes W8<small>636 MB</small></div>
+  <div style="width:27%;background:#5866b8">GDN int8<small>519 MB</small></div>
+  <div style="width:19%;background:#7a86cc">experts W4<small>365 MB</small></div>
+  <div style="width:8%;background:#9aa4d9">lm_head</div>
+  <div style="width:7%;background:#b7bee5">router</div>
+  <div style="width:4%;background:#cfd4ee">QSA</div>
+  <div style="width:2%;background:var(--glue)"></div>
+</div>
+<div class="barlabels">
+  <span><b>636 MB</b> 96 hyper-connection mixes, int8</span>
+  <span><b>519 MB</b> GDN in_proj + out_proj, int8</span>
+  <span><b>365 MB</b> 11 experts × 48 layers, W4</span>
+  <span><b>159 MB</b> lm_head int8</span>
+  <span><b>126 MB</b> router bf16</span>
+  <span><b>78 MB</b> QSA projections W4</span>
+  <span><b>~30 MB</b> misc</span>
+</div>
+
+<h2>Step prologue <span class="mono" style="font-weight:400;font-size:13px;color:var(--ink2)">once per step</span></h2>
+<div class="tracewrap"><table>
+<thead><tr><th>#</th><th>launch</th><th>kind</th><th style="text-align:right">bytes</th><th style="text-align:right">µs</th><th>what it does</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td class="k">embedding gather + repeat(1, hc)</td><td><span class="chip" style="--c:var(--glue)">aten ×2</span></td><td class="r">–</td><td class="r">~4</td><td class="d">Token embedding row, replicated into the 4 hyper-connection streams.</td></tr>
+<tr><td class="n">2</td><td class="k">PLE input chain: cummax ×2, n-gram ids, zero-copy gather, 5 KB all-reduce, copy</td><td><span class="chip" style="--c:var(--host)">mixed ×12</span></td><td class="r">host RAM</td><td class="r">~40</td><td class="d">Layer 1 only. Per-layer embedding rows read straight from the pinned checkpoint shards on the host (no device copy of the 95 GB table), then reduced across ranks.</td></tr>
+<tr><td class="n">3</td><td class="k">PLE layer body: query norm, gate (dot·sign·sqrt·sigmoid), norm_conv, short-conv decode</td><td><span class="chip" style="--c:var(--glue)">eager ×16</span></td><td class="r">–</td><td class="r">~45</td><td class="d">Still eager glue; the largest un-fused block left outside the layer loop.</td></tr>
+</tbody></table></div>
+
+<h2>GDN layer <span class="mono" style="font-weight:400;font-size:13px;color:var(--ink2)">× 36 · 17 launches · ~105 µs</span></h2>
+<p class="note">Gated DeltaNet linear attention. Inputs: the four HC streams from the previous layer's MoE output and injection. Node 5 is the one independent branch in the whole layer; everything else is a chain.</p>
+<div class="tracewrap"><table>
+<thead><tr><th>#</th><th>launch</th><th>kind</th><th style="text-align:right">bytes</th><th style="text-align:right">µs</th><th>what it does</th></tr></thead>
+<tbody>
+<tr class="sec"><td colspan="6">attention hyper-connection <span>gfx908_hc_fused · W8 chain, 3 launches</span></td></tr>
+<tr><td class="n">1</td><td class="k">hc_combine_norm</td><td><span class="chip" style="--c:var(--glue)">HIP</span></td><td class="r">–</td><td class="r">~5</td><td class="d">Combine the 4 streams with the previous block output and injection, RMSNorm.</td></tr>
+<tr><td class="n">2</td><td class="k">hc_w8_gemv mix_down (+silu epilogue)</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">3.3 MB</td><td class="r">~5</td><td class="d">int8 gs128 weights, the M ≤ 4 fused range.</td></tr>
+<tr><td class="n">3</td><td class="k">hc_w8_gemv mix_up (+gate-mix epilogue)</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">3.3 MB</td><td class="r">~5</td><td class="d">Produces the layer input and the residual gate in one pass.</td></tr>
+<tr class="sec"><td colspan="6">GDN block <span>qwen_gdn_linear_attn · gfx908_gdn_fused</span></td></tr>
+<tr><td class="n">4</td><td class="k">in_proj_qkvz · w8sw_gemv (swizzled int8)</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">10.5 MB</td><td class="r">13.5</td><td class="d">4096×2560 per rank; the M=1 path reads the MFMA-swizzled layout directly.</td></tr>
+<tr><td class="n">5</td><td class="k">in_proj_ba · wvSplitK bf16</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">0.12 MB</td><td class="r">3.9</td><td class="d">24 output rows (β, α). Independent of #4 (candidate for the merged launch in rc8).</td></tr>
+<tr><td class="n">6</td><td class="k">gdn_fused decode</td><td><span class="chip" style="--c:var(--attn)">HIP</span></td><td class="r">state</td><td class="r">5.6</td><td class="d">Conv1d state update, gated delta recurrence, gated RMSNorm, z copy: was 5 launches.</td></tr>
+<tr><td class="n">7</td><td class="k">out_proj · w8sw_gemv</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">3.9 MB</td><td class="r">~6</td><td class="d">2560×1536 int8.</td></tr>
+<tr><td class="n">8</td><td class="k">push all-reduce (5 KB)</td><td><span class="chip" style="--c:var(--coll)">xGMI</span></td><td class="r">5 KB ×3</td><td class="r">5.3</td><td class="d">Each rank writes its partial into the peers' buffers and flips a sentinel; the consumer sums. Was 7.8 µs one-shot.</td></tr>
+<tr class="sec"><td colspan="6">MLP hyper-connection <span>same 3-launch W8 chain</span></td></tr>
+<tr><td class="n">9–11</td><td class="k">hc_combine_norm · mix_down · mix_up</td><td><span class="chip" style="--c:var(--gemv)">HIP ×3</span></td><td class="r">6.6 MB</td><td class="r">~15</td><td class="d"></td></tr>
+<tr class="sec"><td colspan="6">MoE block <span>gfx908_router_topk · gfx908_w4a8 · shared expert folded as expert #E</span></td></tr>
+<tr><td class="n">12</td><td class="k">router_topk_fused</td><td><span class="chip" style="--c:var(--gemv)">HIP</span></td><td class="r">2.6 MB</td><td class="r">6.5</td><td class="d">bf16 router GEMV (512×2560), softmax, top-10, plus the shared-expert gate: one launch with a last-arriving finalize.</td></tr>
+<tr><td class="n">13</td><td class="k">w4a8_slab gate_up (prep fold)</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">4.9 MB</td><td class="r">8.9</td><td class="d">Quantizes the activation to int8 per 32-group in LDS staging, then v_dot4_i32_i8 against 11 W4 expert slices (10 routed + shared).</td></tr>
+<tr><td class="n">14</td><td class="k">_silu_mul_quant</td><td><span class="chip" style="--c:var(--glue)">Triton</span></td><td class="r">–</td><td class="r">~3</td><td class="d">silu(gate)·up and re-quantize to Q8_1 for the down projection.</td></tr>
+<tr><td class="n">15</td><td class="k">w4a8_rowlane down</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">2.5 MB</td><td class="r">~5</td><td class="d">Per expert-row lanes; output partials per (token, expert).</td></tr>
+<tr><td class="n">16</td><td class="k">_moe_reduce_weighted_sum</td><td><span class="chip" style="--c:var(--glue)">Triton</span></td><td class="r">–</td><td class="r">2.0</td><td class="d">Weighted sum of the 11 partials (10 workgroups since the reduce-block change).</td></tr>
+<tr><td class="n">17</td><td class="k">push all-reduce (5 KB)</td><td><span class="chip" style="--c:var(--coll)">xGMI</span></td><td class="r">5 KB ×3</td><td class="r">5.3</td><td class="d">Block output goes to the next layer's combine.</td></tr>
+</tbody></table></div>
+
+<h2>QSA layer <span class="mono" style="font-weight:400;font-size:13px;color:var(--ink2)">× 12 (every 4th) · ~25 launches · ~145 µs at 3K context</span></h2>
+<p class="note">Sparse attention with a learned indexer: compressed key blocks are scored, the top 512 per query are selected, and only those are attended. Before the glue fusion this layer launched 45 kernels; the crossed-out group below is what one HIP kernel now does.</p>
+<div class="tracewrap"><table>
+<thead><tr><th>#</th><th>launch</th><th>kind</th><th style="text-align:right">bytes</th><th style="text-align:right">µs</th><th>what it does</th></tr></thead>
+<tbody>
+<tr class="sec"><td colspan="6">attention hyper-connection <span>3 launches, as above</span></td></tr>
+<tr><td class="n">1–3</td><td class="k">hc_combine_norm · mix_down · mix_up</td><td><span class="chip" style="--c:var(--gemv)">HIP ×3</span></td><td class="r">6.6 MB</td><td class="r">~15</td><td class="d"></td></tr>
+<tr class="sec"><td colspan="6">projections <span>dense W4A8 path: slab + fp32→bf16 cast</span></td></tr>
+<tr><td class="n">4–5</td><td class="k">qkv_proj · w4a8 slab + cast</td><td><span class="chip" style="--c:var(--gemv)">HIP + Triton</span></td><td class="r">4.3 MB</td><td class="r">~9.5</td><td class="d">2560 → 3584 (q, k, v, gate).</td></tr>
+<tr><td class="n">6–7</td><td class="k">index_qk_proj · w4a8 slab + cast</td><td><span class="chip" style="--c:var(--gemv)">HIP + Triton</span></td><td class="r">0.8 MB</td><td class="r">~6.5</td><td class="d">2560 → 640 indexer q/k.</td></tr>
+<tr class="sec"><td colspan="6">fused decode glue <span>gfx908_qsa_glue · replaces 18 launches (norms, MRoPE, gathers, copies, cache writes)</span></td></tr>
+<tr><td class="n">8</td><td class="k">qsa_glue_pre (1 workgroup per token)</td><td><span class="chip" style="--c:var(--attn)">HIP</span></td><td class="r">cache</td><td class="r">9.9</td><td class="d">Main q/k Gemma-norm + interleaved MRoPE; K/V written straight into the paged cache; indexer q norm + RoPE; group pooling + k norm + RoPE into the compressed key cache; raw-key ring and int64 position ring. Reproduces the compiled numerics (inductor drops the bf16 round trip between norm and RoPE).</td></tr>
+<tr class="sec"><td colspan="6">indexer + selection</td></tr>
+<tr><td class="n">9</td><td class="k">_qsa_mqa_paged scorer</td><td><span class="chip" style="--c:var(--attn)">Triton</span></td><td class="r">compressed K</td><td class="r">5.8–19</td><td class="d">Scores every visible compressed block (8192 columns under capture); cost grows with context.</td></tr>
+<tr><td class="n">10</td><td class="k">qsa_topk_expand</td><td><span class="chip" style="--c:var(--attn)">HIP</span></td><td class="r">–</td><td class="r">3.2–32</td><td class="d">Deterministic radix top-512 with the stable tie rule, expanded to token indices: was topKPerRowDecode + repair + expand.</td></tr>
+<tr class="sec"><td colspan="6">attention</td></tr>
+<tr><td class="n">11</td><td class="k">_qsa_sparse_paged_gqa_splitk (64 splits)</td><td><span class="chip" style="--c:var(--attn)">Triton</span></td><td class="r">selected KV</td><td class="r">~13</td><td class="d">Attends only the selected blocks.</td></tr>
+<tr><td class="n">12</td><td class="k">_qsa_merge_splitk_gate</td><td><span class="chip" style="--c:var(--attn)">Triton</span></td><td class="r">–</td><td class="r">~5.4</td><td class="d">Split-K merge with the sigmoid output gate and padded-row zeroing folded in.</td></tr>
+<tr><td class="n">13–14</td><td class="k">o_proj · w4a8 slab + cast</td><td><span class="chip" style="--c:var(--gemv)">HIP + Triton</span></td><td class="r">~1 MB</td><td class="r">~6.5</td><td class="d">1536 → 2560.</td></tr>
+<tr><td class="n">15</td><td class="k">push all-reduce (5 KB)</td><td><span class="chip" style="--c:var(--coll)">xGMI</span></td><td class="r">5 KB ×3</td><td class="r">5.3</td><td class="d"></td></tr>
+<tr class="sec"><td colspan="6">MLP hyper-connection + MoE <span>identical to GDN layer nodes 9–17</span></td></tr>
+<tr><td class="n">16–24</td><td class="k">hc ×3 · router_topk_fused · slab · silu_mul_quant · rowlane · reduce · push all-reduce</td><td><span class="chip" style="--c:var(--gemv)">mixed ×9</span></td><td class="r">16.6 MB</td><td class="r">~46</td><td class="d"></td></tr>
+</tbody></table></div>
+
+<h2>Step epilogue <span class="mono" style="font-weight:400;font-size:13px;color:var(--ink2)">once per step</span></h2>
+<div class="tracewrap"><table>
+<thead><tr><th>#</th><th>launch</th><th>kind</th><th style="text-align:right">bytes</th><th style="text-align:right">µs</th><th>what it does</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td class="k">final mixer combine_and_mix</td><td><span class="chip" style="--c:var(--gemv)">HIP ×3</span></td><td class="r">6.6 MB</td><td class="r">~15</td><td class="d">Collapses the 4 HC streams to the hidden state.</td></tr>
+<tr><td class="n">2</td><td class="k">graph replay ends → eager</td><td><span class="chip" style="--c:var(--host)">boundary</span></td><td class="r">–</td><td class="r">skew</td><td class="d">Rank 0 carries 0.2–0.3 ms more work than ranks 1–3 and pays it here; the in-graph logits path (rc8 arm) targets this.</td></tr>
+<tr><td class="n">3</td><td class="k">lm_head · w8sw_gemv (int8, vocab shard)</td><td><span class="chip" style="--c:var(--gemv)">HIP GEMV</span></td><td class="r">159 MB</td><td class="r">~150</td><td class="d">62080×2560 per rank, one row.</td></tr>
+<tr><td class="n">4</td><td class="k">logits all-gather (RCCL)</td><td><span class="chip" style="--c:var(--coll)">RCCL</span></td><td class="r">121→485 KB</td><td class="r">57</td><td class="d">The only RCCL collective left in the step; custom xGMI gather is gated for rc8.</td></tr>
+<tr><td class="n">5</td><td class="k">sampler: radix top-k/top-p (7 launches), gumbel, combine</td><td><span class="chip" style="--c:var(--glue)">Triton ×11</span></td><td class="r">–</td><td class="r">~120</td><td class="d">Exact byte-radix select for k ≤ 64 replaced a full-vocab sort (343 → 99 µs at one row).</td></tr>
+<tr><td class="n">6</td><td class="k">next-step metadata (eager): QSA/GDN builders, 1 custom all-reduce</td><td><span class="chip" style="--c:var(--host)">host</span></td><td class="r">–</td><td class="r">~200</td><td class="d">Rebuilt every step outside the graph; part of the ~1.2 ms boundary.</td></tr>
+</tbody></table></div>
+
+<h2>Reading the map</h2>
+<div class="grid2">
+  <div>
+    <h3>Launch count per step</h3>
+    <div class="kv">
+      <b>36 × 17</b><span>GDN layers = 612</span>
+      <b>12 × 24</b><span>QSA layers = 288</span>
+      <b>~30</b><span>prologue and PLE layer</span>
+      <b>~20</b><span>epilogue, logits, sampler</span>
+      <b>~90</b><span>eager step boundary</span>
+      <b>≈ 1,050</b><span>total (was ~1,700 before the GDN, QSA and MoE fusions)</span>
+    </div>
+  </div>
+  <div>
+    <h3>What each fusion removed</h3>
+    <div class="kv">
+      <b>GDN glue</b><span>5 → 1 launch per GDN layer</span>
+      <b>QSA glue</b><span>45 → ~25 per QSA layer (−0.9 ms/step)</span>
+      <b>router</b><span>GEMV + softmax + top-k + shared gate → 1</span>
+      <b>prep fold</b><span>activation quant into the slab staging (5 → 4 MoE launches)</span>
+      <b>HC W8 chain</b><span>5 → 3 per module, int8 weights</span>
+      <b>push AR</b><span>7.8 → 5.3 µs per collective, 98 per step</span>
+    </div>
+  </div>
+</div>
+<p class="note">Sources: agents/graph_branch (per-layer DAG and node times), agents/qsa_glue (QSA inventory before/after), agents/ar_track (collectives, skew), agents/spec_research (byte ledger), agents/isa_research (dispatch cost). Times are graph-timed cold microbenches per launch at 3K context; in-server the same kernels sit inside a ~1,050-node graph whose dispatch and tails make up the difference to the measured 9.55 ms.</p>
+</main>
