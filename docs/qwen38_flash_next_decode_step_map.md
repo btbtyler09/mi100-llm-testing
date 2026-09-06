@@ -8,7 +8,7 @@ Per-rank bytes per token: HC mixes W8 636 MB, GDN int8 519, experts W4 365, lm_h
 
 ## rc8 deltas (2026-09-06)
 
-Measured step: 9.17-9.20 ms (rc7 9.55-9.61), c=1 105.7 tok/s decode-stress / 107-108 in probes; 12-tier and a 290 W halo in `Model_Reports/`.
+Measured step: 9.17-9.20 ms (rc7 9.55-9.61), c=1 105.7 tok/s decode-stress / 107-108 in probes; 12-tier (`Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit.md`) and the 290 W halo (`..._290W.md`).
 
 | change | launches per step | where in the tables |
 |---|---|---|
