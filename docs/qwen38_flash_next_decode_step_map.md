@@ -1,10 +1,24 @@
 # Flash-Next decode step map (gfx908, TP4, c=1)
 
-Release: rc7 (`btbtyler09/vllm-rocm-gfx908:v0.28.0rc7.dev-q38fn`, vllm-gfx908 @ 382966cbdd) with push all-reduce. Updated with each release; the HTML version (`qwen38_flash_next_decode_step_map.html`) is the same content with the budget bars.
+Release: rc8 (`btbtyler09/vllm-rocm-gfx908:v0.28.0rc8.dev-q38fn`, vllm-gfx908 @ e1343cd539). The tables below were drawn on rc7 (382966cbdd) and still describe the kernel order; the rc8 deltas are listed in the section right below. Updated with each release.
 
 One decode token, kernel by kernel, as the captured FULL graph launches it. Times are graph-timed cold per launch (3K context); bytes are per rank. Sources: agents/graph_branch, agents/qsa_glue, agents/ar_track, agents/spec_research, agents/isa_research. Step total measured in-server: 9.55 ms (kernel bodies ~5.9 ms; the rest is ~1,050 nodes of dispatch, all-reduce skew and the eager step boundary).
 
 Per-rank bytes per token: HC mixes W8 636 MB, GDN int8 519, experts W4 365, lm_head 159, router bf16 126, QSA W4 78, misc ~30 = 1.91 GB.
+
+## rc8 deltas (2026-09-06)
+
+Measured step: 9.17-9.20 ms (rc7 9.55-9.61), c=1 105.7 tok/s decode-stress / 107-108 in probes; 12-tier and a 290 W halo in `Model_Reports/`.
+
+| change | launches per step | where in the tables |
+|---|---|---|
+| HC-AR consumer fused into the HC combine (`VLLM_GFX908_HC_AR_FUSED`, split kernels, arrival counters allocated at model build) | -96 (the push all-reduce's consume launch folds into `hc_combine_norm` / `hc_combine`) | GDN/QSA node 1 and the MLP combine; the two "push AR" rows lose their consume half |
+| W4A8 bf16 epilogue for the dense QSA slab GEMVs (`VLLM_GFX908_W4A8_BF16_EPILOGUE`) | -36 (the fp32→bf16 cast launch after each dense GEMV) | QSA qkv / index_qk / o_proj rows |
+| PLE decode glue (`VLLM_GFX908_PLE_GLUE`, one HIP kernel, splitting op; compiled fallback body for prefill/mixed batches) | -22 (prologue row 3: 23 → 1) | step prologue |
+| sampler radix passes merged | -1 (7 → 6), selection replay removed | epilogue sampler rows |
+| fused push-AR producer (`VLLM_GFX908_PUSH_AR_FUSED_PRODUCER`) | 0 in practice: armed 96×, claimed 0× in the server; inert, under investigation | – |
+
+Net about -155 launches: roughly 1,050 → ~900 graph nodes per step. Two rules learned on the way, both recorded in the fork docs: a custom op that replaces a vLLM splitting op must be registered as one, and persistent kernel state (counters, sentinel slots) must never be allocated lazily inside a graph capture.
 
 ## Where 9.55 ms goes
 
