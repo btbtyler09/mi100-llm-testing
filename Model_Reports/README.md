@@ -19,12 +19,12 @@ matching start script is in `../scripts/`.
 
 ![power curve](power_curve_qwen38_flash_next.svg)
 
-| cap | c=1 decode (tok/s) | single-user TPOT | c=4 | c=16 | c=64 | 16K c=4 | c=1 tok/s per kW (4 cards) |
-|---|---|---|---|---|---|---|---|
-| 100 W | 77.5 | 12.9 ms | 149 | 281 | 304 | 81 | 194 |
-| 150 W | 100.9 | 10.0 ms | 209 | 485 | 512 | 127 | 168 |
-| 200 W (recommended) | 107.5 | 9.4 ms | 232 | 542 | 567 | 138 | 134 |
-| 290 W (rc8 halo) | 107.3 | 9.4 ms | 233 | 571 | 619 | 148 | 93 |
+| cap | c=1 decode (tok/s) | single-user TPOT | c=4 | c=8 | c=16 | c=64 | 16K c=4 | c=1 tok/s per kW (4 cards) |
+|---|---|---|---|---|---|---|---|---|
+| 100 W | 77.5 | 12.9 ms | 149 | 218 | 281 | 304 | 81 | 194 |
+| 150 W | 100.9 | 10.0 ms | 209 | 331 | 485 | 512 | 127 | 168 |
+| 200 W (recommended) | 107.5 | 9.4 ms | 232 | 361 | 542 | 567 | 138 | 134 |
+| 290 W (rc8 halo) | 107.3 | 9.4 ms | 233 | 376 | 571 | 619 | 148 | 93 |
 
 The cap clips clocks even though the sampled average draw during decode is only ~45-60 W per card,
 so c=1 is not power-insensitive below 200 W; 150 W is the throughput-per-watt sweet spot for

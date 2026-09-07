@@ -5,11 +5,16 @@ This is a repository for documenting the setup and performance of MI100s in popu
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
 
+**9/7/2026 Update — Qwen3.8-Flash-Next (180B MoE, GPTQ-4bit) final release: rc9**
+* Image `btbtyler09/vllm-rocm-gfx908:v0.28.0rc9.dev-q38fn` (vLLM v0.28 + gfx908 decode path: W4A8/W8A16 HIP GEMVs, fused GDN/QSA/PLE decode glue, push all-reduce over xGMI with fused producer/consumer, radix sampler, HIP graphs). Start script: [`scripts/serve_qwen38_flash_next.sh`](scripts/serve_qwen38_flash_next.sh).
+* 4x MI100 at 200 W: **c=1 107.5 tok/s (9.4 ms TPOT)**, c=16 542, c=64 567, 16K-context c=4 138 tok/s (TTFT 9.0 s); GSM8K 1281/1319, PPL 3.138 (== the bf16 reference). Bring-up was 17.5 tok/s at c=1 on 9/2.
+* Power curve (100/150/200/290 W) and per-tier reports: [`Model_Reports/README.md`](Model_Reports/README.md); recommended config report [`Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit.md`](Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit.md); kernel-by-kernel decode step map [`docs/qwen38_flash_next_decode_step_map.md`](docs/qwen38_flash_next_decode_step_map.md).
+
 **6/11/2026 Update — v0.21 + 439-commit AITER sync (Unified Attention fixed)**
 * New `:latest` = `btbtyler09/vllm-rocm-gfx908:v0.21.0rc1.dev-aitersync` (vLLM v0.21.0rc1+mi100, AITER pinned to the 439-commit upstream sync `395f84533`).
 * **The AITER Unified Attention (UA) state-corruption bug on gfx908 is fixed.** A ~1,200-request soak under the production config (MTP n=3 + P82) stays coherent pre+post — well past the old ~200-request failure threshold.
 * On **dense GPTQ-8 models running MTP**, UA is now the *faster* backend: **+15% throughput on long-output dataset generation (4k in / 6k out), +6–8% interactive (c=1), +29% long-context (16K)**. The win is MTP-specific (UA ≈ Triton without MTP) and architecture-specific (MoE shows the opposite). Enable with `VLLM_ROCM_USE_AITER_UNIFIED_ATTENTION=1` (and drop `--attention-backend`). `TRITON_ATTN` stays the default and is ~10% better for short-context high-throughput.
-* Full eval: [`Model_Reports/ua_eval_27B_2026-06-11.md`](Model_Reports/ua_eval_27B_2026-06-11.md).
+* Full eval: [`Model_Reports/archive/misc/ua_eval_27B_2026-06-11.md`](Model_Reports/archive/misc/ua_eval_27B_2026-06-11.md).
 
 **4/26/2026 Update — Round-3 MI100 patches (custom ops + NCCL Tree+LL)**
 * Qwen3.6 family rebenchmarked on the same v0.19.2rc1+mi100 image plus Round-3 patches: `5h` custom operators and `5j` NCCL Tree+LL all-reduce path.
@@ -128,7 +133,19 @@ DOCKER_BUILDKIT=1 docker build \
 
 ## Benchmark Results
 
-Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs (gfx908) via vLLM with AITER (compile+piecewise). The fleet charts below are a v0.19.2rc1+mi100 snapshot (TRITON_ATTN). The newest results — the v0.21 + AITER-sync UA-vs-Triton backend evaluation on Qwen3.6-27B-GPTQ-8bit — are in [`Model_Reports/ua_eval_27B_2026-06-11.md`](Model_Reports/ua_eval_27B_2026-06-11.md). Full interactive charts with legend toggle are in the [interactive dashboard](charts/benchmark_charts.html); detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPUs (gfx908) via vLLM with AITER (compile+piecewise). The fleet charts below are a v0.19.2rc1+mi100 snapshot (TRITON_ATTN). The newest results — the v0.21 + AITER-sync UA-vs-Triton backend evaluation on Qwen3.6-27B-GPTQ-8bit — are in [`Model_Reports/archive/misc/ua_eval_27B_2026-06-11.md`](Model_Reports/archive/misc/ua_eval_27B_2026-06-11.md). Full interactive charts with legend toggle are in the [interactive dashboard](charts/benchmark_charts.html); detailed per-model reports are in [`Model_Reports/`](Model_Reports/).
+
+### Qwen3.8-Flash-Next (rc9, 9/7) — throughput vs power cap
+![Qwen3.8-Flash-Next power curve](Model_Reports/power_curve_qwen38_flash_next.svg)
+
+| cap | c=1 decode | c=4 | c=8 | c=16 | c=64 | 16K c=4 | c=1 tok/s per kW |
+|---|---|---|---|---|---|---|---|
+| 100 W | 77.5 | 149 | 218 | 281 | 304 | 81 | 194 |
+| 150 W | 100.9 | 209 | 331 | 485 | 512 | 127 | 168 |
+| 200 W (recommended) | 107.5 | 232 | 361 | 542 | 567 | 138 | 134 |
+| 290 W | 107.3 | 233 | 376 | 571 | 619 | 148 | 93 |
+
+Same image and settings; the cap is changed live with `rocm-smi --setpoweroverdrive`. Decode at c=1 is launch-bound and barely moves above 200 W; below it the firmware clips clocks (-28% at 100 W). 150 W is the throughput-per-watt sweet spot; prefill (16K TTFT) is the only phase that keeps scaling to 290 W.
 
 ### UA vs TRITON_ATTN backend — Qwen3.6-27B-GPTQ-8bit (MTP n=3 + P82, 6/11)
 ![UA vs TRITON_ATTN](charts/ua_vs_triton_27b.png)
@@ -167,6 +184,7 @@ Pre-quantized models on HuggingFace:
 
 | Tag | vLLM Version | AITER | Notes |
 |-----|-------------|-------|-------|
+| `v0.28.0rc9.dev-q38fn` | 0.28.0 (fork `qwen38-flash-next`) | Yes | **Qwen3.8-Flash-Next final** — gfx908 decode path (HIP GEMVs, fused glue, push AR, HIP graphs); use `scripts/serve_qwen38_flash_next.sh` |
 | `latest` / `v0.21.0rc1.dev-aitersync` | 0.21.0rc1.dev | Yes (439-commit sync, `395f84533`) | **Latest** — UA state-corruption fixed; UA faster than Triton for dense GPTQ-8 + MTP. TRITON_ATTN still default. ROCm 7.2.3 |
 | `v0.21.0rc1.dev` | 0.21.0rc1.dev | Yes (pre-sync) | Historical — v0.21 upstream sync before the AITER UA fix |
 | `v0.19.2rc1` | 0.19.2rc1 | Yes | TRITON_ATTN + compile+piecewise + Round-3 MI100 patches, ROCm 7.2.1 |
