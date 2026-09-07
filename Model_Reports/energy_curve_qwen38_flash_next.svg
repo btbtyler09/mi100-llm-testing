@@ -64,6 +64,17 @@
 <text x="599.8" y="264.7" fill="#d4a017" font-size="11">0.61</text>
 <line x1="640" y1="98" x2="668" y2="98" stroke="#d4a017" stroke-width="2.5"/>
 <text x="674" y="102" fill="#222">c=4</text>
+<polyline points="96.2,295.9 227.1,324.2 358.1,308.1 593.8,313.4" fill="none" stroke="#7f8c8d" stroke-width="2.5"/>
+<circle cx="96.2" cy="295.9" r="4" fill="#7f8c8d"/>
+<text x="102.2" y="289.9" fill="#7f8c8d" font-size="11">0.48</text>
+<circle cx="227.1" cy="324.2" r="4" fill="#7f8c8d"/>
+<text x="233.1" y="318.2" fill="#7f8c8d" font-size="11">0.34</text>
+<circle cx="358.1" cy="308.1" r="4" fill="#7f8c8d"/>
+<text x="364.1" y="302.1" fill="#7f8c8d" font-size="11">0.42</text>
+<circle cx="593.8" cy="313.4" r="4" fill="#7f8c8d"/>
+<text x="599.8" y="307.4" fill="#7f8c8d" font-size="11">0.39</text>
+<line x1="640" y1="118" x2="668" y2="118" stroke="#7f8c8d" stroke-width="2.5"/>
+<text x="674" y="122" fill="#222">c=8</text>
 <polyline points="96.2,311.2 227.1,331.7 358.1,328.0 593.8,320.5" fill="none" stroke="#2980b9" stroke-width="2.5"/>
 <circle cx="96.2" cy="311.2" r="4" fill="#2980b9"/>
 <text x="102.2" y="305.2" fill="#2980b9" font-size="11">0.41</text>
@@ -73,8 +84,8 @@
 <text x="364.1" y="322.0" fill="#2980b9" font-size="11">0.32</text>
 <circle cx="593.8" cy="320.5" r="4" fill="#2980b9"/>
 <text x="599.8" y="314.5" fill="#2980b9" font-size="11">0.36</text>
-<line x1="640" y1="118" x2="668" y2="118" stroke="#2980b9" stroke-width="2.5"/>
-<text x="674" y="122" fill="#222">c=16</text>
+<line x1="640" y1="138" x2="668" y2="138" stroke="#2980b9" stroke-width="2.5"/>
+<text x="674" y="142" fill="#222">c=16</text>
 <polyline points="96.2,326.4 227.1,333.8 358.1,329.4 593.8,321.8" fill="none" stroke="#16a085" stroke-width="2.5"/>
 <circle cx="96.2" cy="326.4" r="4" fill="#16a085"/>
 <text x="102.2" y="320.4" fill="#16a085" font-size="11">0.33</text>
@@ -84,8 +95,8 @@
 <text x="364.1" y="323.4" fill="#16a085" font-size="11">0.31</text>
 <circle cx="593.8" cy="321.8" r="4" fill="#16a085"/>
 <text x="599.8" y="315.8" fill="#16a085" font-size="11">0.35</text>
-<line x1="640" y1="138" x2="668" y2="138" stroke="#16a085" stroke-width="2.5"/>
-<text x="674" y="142" fill="#222">c=64</text>
+<line x1="640" y1="158" x2="668" y2="158" stroke="#16a085" stroke-width="2.5"/>
+<text x="674" y="162" fill="#222">c=64</text>
 <polyline points="96.2,167.1 227.1,188.6 358.1,157.1 593.8,142.1" fill="none" stroke="#8e44ad" stroke-width="2.5"/>
 <circle cx="96.2" cy="167.1" r="4" fill="#8e44ad"/>
 <text x="102.2" y="161.1" fill="#8e44ad" font-size="11">1.15</text>
@@ -95,6 +106,6 @@
 <text x="364.1" y="151.1" fill="#8e44ad" font-size="11">1.20</text>
 <circle cx="593.8" cy="142.1" r="4" fill="#8e44ad"/>
 <text x="599.8" y="136.1" fill="#8e44ad" font-size="11">1.27</text>
-<line x1="640" y1="158" x2="668" y2="158" stroke="#8e44ad" stroke-width="2.5"/>
-<text x="674" y="162" fill="#222">16K prefill c=4</text>
+<line x1="640" y1="178" x2="668" y2="178" stroke="#8e44ad" stroke-width="2.5"/>
+<text x="674" y="182" fill="#222">16K prefill c=4</text>
 </svg>

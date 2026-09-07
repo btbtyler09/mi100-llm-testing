@@ -171,6 +171,33 @@
      "wh_per_request": 1.2266493055555556,
      "kwh_per_mtok_output": 1.1978997124565973,
      "kwh_per_mtok_all": 0.07046468896803514
+    },
+    {
+     "wall_s": 36.15811096201651,
+     "duration_s": 22.01,
+     "output_tokens": 8192.0,
+     "input_tokens": 32768.0,
+     "tok_s": 372.26,
+     "ttft_mean_ms": 1070.57,
+     "tpot_mean_ms": 17.37,
+     "requests": 32,
+     "tier": "c=8 (1024 / 256)",
+     "power": {
+      "samples": 73,
+      "avg_w_per_gpu": [
+       142.82191780821918,
+       142.3972602739726,
+       140.16438356164383,
+       139.05479452054794
+      ],
+      "avg_w_total": 564.4383561643835,
+      "peak_w_total": 1093.0,
+      "min_w_total": 194.0
+     },
+     "wh_total": 3.4509133942161343,
+     "wh_per_request": 0.1078410435692542,
+     "kwh_per_mtok_output": 0.4212540764423992,
+     "kwh_per_mtok_all": 0.08425081528847984
     }
    ]
   },
@@ -338,6 +365,33 @@
      "wh_per_request": 1.1737289426523296,
      "kwh_per_mtok_output": 1.1462196705589156,
      "kwh_per_mtok_all": 0.06742468650346564
+    },
+    {
+     "wall_s": 55.583504753012676,
+     "duration_s": 41.43,
+     "output_tokens": 8192.0,
+     "input_tokens": 32768.0,
+     "tok_s": 197.75,
+     "ttft_mean_ms": 2404.02,
+     "tpot_mean_ms": 31.17,
+     "requests": 32,
+     "tier": "c=8 (1024 / 256)",
+     "power": {
+      "samples": 112,
+      "avg_w_per_gpu": [
+       88.48214285714286,
+       87.21428571428571,
+       84.27678571428571,
+       84.35714285714286
+      ],
+      "avg_w_total": 344.3303571428571,
+      "peak_w_total": 677.0,
+      "min_w_total": 194.0
+     },
+     "wh_total": 3.9626685267857136,
+     "wh_per_request": 0.12383339146205355,
+     "kwh_per_mtok_output": 0.4837241853986467,
+     "kwh_per_mtok_all": 0.09674483707972933
     }
    ]
   },
@@ -505,6 +559,33 @@
      "wh_per_request": 1.0607016875,
      "kwh_per_mtok_output": 1.0358414916992187,
      "kwh_per_mtok_all": 0.060931852452895216
+    },
+    {
+     "wall_s": 36.83105037099449,
+     "duration_s": 22.66,
+     "output_tokens": 8192.0,
+     "input_tokens": 32768.0,
+     "tok_s": 361.54,
+     "ttft_mean_ms": 713.77,
+     "tpot_mean_ms": 19.4,
+     "requests": 32,
+     "tier": "c=8 (1024 / 256)",
+     "power": {
+      "samples": 74,
+      "avg_w_per_gpu": [
+       111.43243243243244,
+       112.51351351351352,
+       108.51351351351352,
+       107.8108108108108
+      ],
+      "avg_w_total": 440.27027027027026,
+      "peak_w_total": 685.0,
+      "min_w_total": 193.0
+     },
+     "wh_total": 2.7712567567567565,
+     "wh_per_request": 0.08660177364864864,
+     "kwh_per_mtok_output": 0.33828817831503377,
+     "kwh_per_mtok_all": 0.06765763566300674
     }
    ]
   },
@@ -672,6 +753,33 @@
      "wh_per_request": 1.3055910256410255,
      "kwh_per_mtok_output": 1.274991235977564,
      "kwh_per_mtok_all": 0.07499948446926846
+    },
+    {
+     "wall_s": 34.413397894008085,
+     "duration_s": 20.14,
+     "output_tokens": 8192.0,
+     "input_tokens": 32768.0,
+     "tok_s": 406.69,
+     "ttft_mean_ms": 680.82,
+     "tpot_mean_ms": 17.06,
+     "requests": 32,
+     "tier": "c=8 (1024 / 256)",
+     "power": {
+      "samples": 69,
+      "avg_w_per_gpu": [
+       147.1304347826087,
+       151.52173913043478,
+       141.91304347826087,
+       136.3768115942029
+      ],
+      "avg_w_total": 576.9420289855072,
+      "peak_w_total": 1403.0,
+      "min_w_total": 194.0
+     },
+     "wh_total": 3.227670128824477,
+     "wh_per_request": 0.10086469152576491,
+     "kwh_per_mtok_output": 0.3940027012725192,
+     "kwh_per_mtok_all": 0.07880054025450382
     }
    ]
   }

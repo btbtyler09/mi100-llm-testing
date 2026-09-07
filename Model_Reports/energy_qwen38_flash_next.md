@@ -29,6 +29,15 @@ Measured package power (sysfs hwmon power1_average, 2 Hz, all four cards summed)
 | 150 W | 215.8 | 422 | 731 | 0.139 | 0.544 | 0.109 | 671 ms | 15.97 ms |
 | 290 W | 247.4 | 546 | 1280 | 0.157 | 0.614 | 0.123 | 527 ms | 14.16 ms |
 
+## c=8 (1024 / 256)
+
+| cap | tok/s | mean W (4 cards) | peak W | Wh / request | kWh / Mtok (output) | kWh / Mtok (in+out) | TTFT | TPOT |
+|---|---|---|---|---|---|---|---|---|
+| 200 W | 372.3 | 564 | 1093 | 0.108 | 0.421 | 0.084 | 1071 ms | 17.37 ms |
+| 100 W | 197.8 | 344 | 677 | 0.124 | 0.484 | 0.097 | 2404 ms | 31.17 ms |
+| 150 W | 361.5 | 440 | 685 | 0.087 | 0.338 | 0.068 | 714 ms | 19.40 ms |
+| 290 W | 406.7 | 577 | 1403 | 0.101 | 0.394 | 0.079 | 681 ms | 17.06 ms |
+
 ## c=16 (1024 / 256)
 
 | cap | tok/s | mean W (4 cards) | peak W | Wh / request | kWh / Mtok (output) | kWh / Mtok (in+out) | TTFT | TPOT |

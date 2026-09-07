@@ -18,6 +18,7 @@ TIERS = [  # name, input, output, prompts, concurrency
     ("decode c=1 (128 in / 2048 out)", 128, 2048, 3, 1),
     ("c=1 (1024 in / 256 out)", 1024, 256, 8, 1),
     ("c=4 (1024 / 256)", 1024, 256, 16, 4),
+    ("c=8 (1024 / 256)", 1024, 256, 32, 8),
     ("c=16 (1024 / 256)", 1024, 256, 48, 16),
     ("c=64 (1024 / 256)", 1024, 256, 128, 64),
     ("16K prefill c=4 (16384 / 1024)", 16384, 1024, 8, 4),
@@ -68,17 +69,24 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--caps", default="200,100,150,290"); ap.add_argument("--hz", type=float, default=2.0)
     ap.add_argument("--container", default="vllm-q38fn"); ap.add_argument("--model", default="qwen38-flash-next")
     ap.add_argument("--tokenizer", default="/mnt/slow-storage/quant/Qwen3.8-Flash-Next-GPTQ-4bit"); ap.add_argument("--out", default="Model_Reports/energy_qwen38_flash_next")
-    ap.add_argument("--restore", type=int, default=200); a = ap.parse_args()
+    ap.add_argument("--restore", type=int, default=200)
+    ap.add_argument("--only", default="", help="regex: run only matching tiers")
+    ap.add_argument("--merge", action="store_true", help="merge into an existing --out JSON instead of replacing it")
+    a = ap.parse_args()
+    tiers_to_run = [t for t in TIERS if not a.only or re.search(a.only, t[0])]
     results = {"hz": a.hz, "sensors": SENSORS, "caps": []}
+    if a.merge and os.path.exists(a.out + ".json"):
+        results = json.load(open(a.out + ".json"))
     # idle draw
-    s = Sampler(a.hz); s.start(); time.sleep(10); s.stop.set(); s.join(); results["idle"] = s.summary()
+    if not results.get("idle"):
+        s = Sampler(a.hz); s.start(); time.sleep(10); s.stop.set(); s.join(); results["idle"] = s.summary()
     print(f"idle: {results['idle']['avg_w_total']:.0f} W total ({[round(x) for x in results['idle']['avg_w_per_gpu']]})")
     try:
         for cap in [int(c) for c in a.caps.split(",")]:
             set_cap(cap); print(f"== cap {cap} W")
             bench(a.container, a.model, a.tokenizer, 1024, 128, 8, 4)  # warm-up at this cap
             tiers = []
-            for name, inp, out, prompts, conc in TIERS:
+            for name, inp, out, prompts, conc in tiers_to_run:
                 s = Sampler(a.hz); s.start()
                 r = bench(a.container, a.model, a.tokenizer, inp, out, prompts, conc)
                 s.stop.set(); s.join(); p = s.summary(); r.update({"tier": name, "power": p})
@@ -92,7 +100,12 @@ def main():
                 else:
                     print(f"  {name}: FAILED {r.get('error','')[:200]}")
                 tiers.append(r)
-            results["caps"].append({"cap_w": cap, "tiers": tiers})
+            entry = next((c for c in results["caps"] if c["cap_w"] == cap), None)
+            if entry is None:
+                results["caps"].append({"cap_w": cap, "tiers": tiers})
+            else:
+                names = {t["tier"] for t in tiers}
+                entry["tiers"] = [t for t in entry["tiers"] if t["tier"] not in names] + tiers
             json.dump(results, open(a.out + ".json", "w"), indent=1)
     finally:
         set_cap(a.restore)
@@ -101,6 +114,8 @@ def main():
              f"Measured package power (sysfs hwmon power1_average, {a.hz:g} Hz, all four cards summed) during each `vllm bench serve` tier; "
              f"idle draw {results['idle']['avg_w_total']:.0f} W total. Energy = mean watts x tier duration. Output-token figures exclude prompt tokens; 'all' includes them.", ""]
     for name, *_ in TIERS:
+        if not any(t["tier"] == name for c in results["caps"] for t in c["tiers"]):
+            continue
         lines += [f"## {name}", "", "| cap | tok/s | mean W (4 cards) | peak W | Wh / request | kWh / Mtok (output) | kWh / Mtok (in+out) | TTFT | TPOT |", "|---|---|---|---|---|---|---|---|---|"]
         for c in results["caps"]:
             r = next((t for t in c["tiers"] if t["tier"] == name), None)
