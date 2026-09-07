@@ -1,6 +1,6 @@
 # Flash-Next decode step map (gfx908, TP4, c=1)
 
-Release: rc8 (`btbtyler09/vllm-rocm-gfx908:v0.28.0rc8.dev-q38fn`, vllm-gfx908 @ e1343cd539). The tables below were drawn on rc7 (382966cbdd) and still describe the kernel order; the rc8 deltas are listed in the section right below. Updated with each release.
+Release: rc9, final (`btbtyler09/vllm-rocm-gfx908:v0.28.0rc9.dev-q38fn`, vllm-gfx908 @ 708816c020; rc8 + the fused push-AR producer actually claiming 48 sites/step + HIP naming in logs; performance equal to rc8 within boot noise). The tables below were drawn on rc7 (382966cbdd) and still describe the kernel order; the rc8 deltas are listed in the section right below. Updated with each release.
 
 One decode token, kernel by kernel, as the captured FULL graph launches it. Times are graph-timed cold per launch (3K context); bytes are per rank. Sources: agents/graph_branch, agents/qsa_glue, agents/ar_track, agents/spec_research, agents/isa_research. Step total measured in-server: 9.55 ms (kernel bodies ~5.9 ms; the rest is ~1,050 nodes of dispatch, all-reduce skew and the eager step boundary).
 
