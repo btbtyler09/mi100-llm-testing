@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="440" font-family="Helvetica,Arial,sans-serif" font-size="12">
+<rect width="920" height="440" fill="#ffffff"/>
+<text x="70" y="22" font-size="15" font-weight="bold">Qwen3.8-Flash-Next on 4x MI100 (rc9): measured energy per output token vs power cap</text>
+<line x1="70" y1="390.0" x2="620" y2="390.0" stroke="#e5e5e5"/>
+<text x="62" y="394.0" text-anchor="end" fill="#555">0.0</text>
+<line x1="70" y1="351.1" x2="620" y2="351.1" stroke="#e5e5e5"/>
+<text x="62" y="355.1" text-anchor="end" fill="#555">0.2</text>
+<line x1="70" y1="312.2" x2="620" y2="312.2" stroke="#e5e5e5"/>
+<text x="62" y="316.2" text-anchor="end" fill="#555">0.4</text>
+<line x1="70" y1="273.3" x2="620" y2="273.3" stroke="#e5e5e5"/>
+<text x="62" y="277.3" text-anchor="end" fill="#555">0.6</text>
+<line x1="70" y1="234.4" x2="620" y2="234.4" stroke="#e5e5e5"/>
+<text x="62" y="238.4" text-anchor="end" fill="#555">0.8</text>
+<line x1="70" y1="195.6" x2="620" y2="195.6" stroke="#e5e5e5"/>
+<text x="62" y="199.6" text-anchor="end" fill="#555">1.0</text>
+<line x1="70" y1="156.7" x2="620" y2="156.7" stroke="#e5e5e5"/>
+<text x="62" y="160.7" text-anchor="end" fill="#555">1.2</text>
+<line x1="70" y1="117.8" x2="620" y2="117.8" stroke="#e5e5e5"/>
+<text x="62" y="121.8" text-anchor="end" fill="#555">1.4</text>
+<line x1="70" y1="78.9" x2="620" y2="78.9" stroke="#e5e5e5"/>
+<text x="62" y="82.9" text-anchor="end" fill="#555">1.6</text>
+<line x1="70" y1="40.0" x2="620" y2="40.0" stroke="#e5e5e5"/>
+<text x="62" y="44.0" text-anchor="end" fill="#555">1.8</text>
+<line x1="96.2" y1="40" x2="96.2" y2="390" stroke="#eeeeee"/>
+<text x="96.2" y="408" text-anchor="middle" fill="#555">100 W</text>
+<line x1="227.1" y1="40" x2="227.1" y2="390" stroke="#eeeeee"/>
+<text x="227.1" y="408" text-anchor="middle" fill="#555">150 W</text>
+<line x1="358.1" y1="40" x2="358.1" y2="390" stroke="#eeeeee"/>
+<text x="358.1" y="408" text-anchor="middle" fill="#555">200 W</text>
+<line x1="593.8" y1="40" x2="593.8" y2="390" stroke="#eeeeee"/>
+<text x="593.8" y="408" text-anchor="middle" fill="#555">290 W</text>
+<text x="345" y="432" text-anchor="middle" fill="#333">power cap per MI100; package power sampled at 2 Hz from sysfs during each tier (idle 194 W total)</text>
+<text transform="translate(16,215) rotate(-90)" text-anchor="middle" fill="#333">kWh per million output tokens (4 cards)</text>
+<polyline points="96.2,133.3 227.1,108.0 358.1,69.6 593.8,76.6" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+<circle cx="96.2" cy="133.3" r="4" fill="#c0392b"/>
+<text x="102.2" y="127.3" fill="#c0392b" font-size="11">1.32</text>
+<circle cx="227.1" cy="108.0" r="4" fill="#c0392b"/>
+<text x="233.1" y="102.0" fill="#c0392b" font-size="11">1.45</text>
+<circle cx="358.1" cy="69.6" r="4" fill="#c0392b"/>
+<text x="364.1" y="63.6" fill="#c0392b" font-size="11">1.65</text>
+<circle cx="593.8" cy="76.6" r="4" fill="#c0392b"/>
+<text x="599.8" y="70.6" fill="#c0392b" font-size="11">1.61</text>
+<line x1="640" y1="58" x2="668" y2="58" stroke="#c0392b" stroke-width="2.5"/>
+<text x="674" y="62" fill="#222">c=1 decode</text>
+<polyline points="96.2,145.5 227.1,127.9 358.1,108.8 593.8,104.0" fill="none" stroke="#e67e22" stroke-width="2.5"/>
+<circle cx="96.2" cy="145.5" r="4" fill="#e67e22"/>
+<text x="102.2" y="139.5" fill="#e67e22" font-size="11">1.26</text>
+<circle cx="227.1" cy="127.9" r="4" fill="#e67e22"/>
+<text x="233.1" y="121.9" fill="#e67e22" font-size="11">1.35</text>
+<circle cx="358.1" cy="108.8" r="4" fill="#e67e22"/>
+<text x="364.1" y="102.8" fill="#e67e22" font-size="11">1.45</text>
+<circle cx="593.8" cy="104.0" r="4" fill="#e67e22"/>
+<text x="599.8" y="98.0" fill="#e67e22" font-size="11">1.47</text>
+<line x1="640" y1="78" x2="668" y2="78" stroke="#e67e22" stroke-width="2.5"/>
+<text x="674" y="82" fill="#222">c=1 1K/256</text>
+<polyline points="96.2,272.5 227.1,284.3 358.1,276.6 593.8,270.7" fill="none" stroke="#d4a017" stroke-width="2.5"/>
+<circle cx="96.2" cy="272.5" r="4" fill="#d4a017"/>
+<text x="102.2" y="266.5" fill="#d4a017" font-size="11">0.60</text>
+<circle cx="227.1" cy="284.3" r="4" fill="#d4a017"/>
+<text x="233.1" y="278.3" fill="#d4a017" font-size="11">0.54</text>
+<circle cx="358.1" cy="276.6" r="4" fill="#d4a017"/>
+<text x="364.1" y="270.6" fill="#d4a017" font-size="11">0.58</text>
+<circle cx="593.8" cy="270.7" r="4" fill="#d4a017"/>
+<text x="599.8" y="264.7" fill="#d4a017" font-size="11">0.61</text>
+<line x1="640" y1="98" x2="668" y2="98" stroke="#d4a017" stroke-width="2.5"/>
+<text x="674" y="102" fill="#222">c=4</text>
+<polyline points="96.2,311.2 227.1,331.7 358.1,328.0 593.8,320.5" fill="none" stroke="#2980b9" stroke-width="2.5"/>
+<circle cx="96.2" cy="311.2" r="4" fill="#2980b9"/>
+<text x="102.2" y="305.2" fill="#2980b9" font-size="11">0.41</text>
+<circle cx="227.1" cy="331.7" r="4" fill="#2980b9"/>
+<text x="233.1" y="325.7" fill="#2980b9" font-size="11">0.30</text>
+<circle cx="358.1" cy="328.0" r="4" fill="#2980b9"/>
+<text x="364.1" y="322.0" fill="#2980b9" font-size="11">0.32</text>
+<circle cx="593.8" cy="320.5" r="4" fill="#2980b9"/>
+<text x="599.8" y="314.5" fill="#2980b9" font-size="11">0.36</text>
+<line x1="640" y1="118" x2="668" y2="118" stroke="#2980b9" stroke-width="2.5"/>
+<text x="674" y="122" fill="#222">c=16</text>
+<polyline points="96.2,326.4 227.1,333.8 358.1,329.4 593.8,321.8" fill="none" stroke="#16a085" stroke-width="2.5"/>
+<circle cx="96.2" cy="326.4" r="4" fill="#16a085"/>
+<text x="102.2" y="320.4" fill="#16a085" font-size="11">0.33</text>
+<circle cx="227.1" cy="333.8" r="4" fill="#16a085"/>
+<text x="233.1" y="327.8" fill="#16a085" font-size="11">0.29</text>
+<circle cx="358.1" cy="329.4" r="4" fill="#16a085"/>
+<text x="364.1" y="323.4" fill="#16a085" font-size="11">0.31</text>
+<circle cx="593.8" cy="321.8" r="4" fill="#16a085"/>
+<text x="599.8" y="315.8" fill="#16a085" font-size="11">0.35</text>
+<line x1="640" y1="138" x2="668" y2="138" stroke="#16a085" stroke-width="2.5"/>
+<text x="674" y="142" fill="#222">c=64</text>
+<polyline points="96.2,167.1 227.1,188.6 358.1,157.1 593.8,142.1" fill="none" stroke="#8e44ad" stroke-width="2.5"/>
+<circle cx="96.2" cy="167.1" r="4" fill="#8e44ad"/>
+<text x="102.2" y="161.1" fill="#8e44ad" font-size="11">1.15</text>
+<circle cx="227.1" cy="188.6" r="4" fill="#8e44ad"/>
+<text x="233.1" y="182.6" fill="#8e44ad" font-size="11">1.04</text>
+<circle cx="358.1" cy="157.1" r="4" fill="#8e44ad"/>
+<text x="364.1" y="151.1" fill="#8e44ad" font-size="11">1.20</text>
+<circle cx="593.8" cy="142.1" r="4" fill="#8e44ad"/>
+<text x="599.8" y="136.1" fill="#8e44ad" font-size="11">1.27</text>
+<line x1="640" y1="158" x2="668" y2="158" stroke="#8e44ad" stroke-width="2.5"/>
+<text x="674" y="162" fill="#222">16K prefill c=4</text>
+</svg>
