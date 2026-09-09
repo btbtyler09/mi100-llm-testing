@@ -145,7 +145,7 @@ Performance benchmarks for quantized models running on 4x AMD Instinct MI100 GPU
 | 200 W (recommended) | 107.5 | 232 | 361 | 542 | 567 | 138 | 134 |
 | 290 W | 107.3 | 233 | 376 | 571 | 619 | 148 | 93 |
 
-Same image and settings; the cap is changed live with `rocm-smi --setpoweroverdrive`. Decode at c=1 is launch-bound and barely moves above 200 W; below it the firmware clips clocks (-28% at 100 W). 150 W is the throughput-per-watt sweet spot; prefill (16K TTFT) is the only phase that keeps scaling to 290 W.
+Same image and settings; the cap is changed live with `rocm-smi --setpoweroverdrive`. Decode at c=1 is launch-bound and barely moves above 200 W; below it the firmware clips clocks (-28% at 100 W). 150 W gives the best throughput per watt; prefill (16K TTFT) is the only phase that keeps scaling to 290 W.
 
 #### Measured energy per output token
 ![energy per token](Model_Reports/energy_curve_qwen38_flash_next.svg)
