@@ -5,6 +5,12 @@ This is a repository for documenting the setup and performance of MI100s in popu
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
 
+**10/5/2026 Update — Qwen3.8-Flash-Next with MTP speculative decoding**
+* Image `btbtyler09/vllm-rocm-gfx908:v0.28.0rc10.dev-q38fn-mtp` (vllm-gfx908 branch [`qwen38-flash-next-mtp`](https://github.com/btbtyler09/vllm-gfx908/tree/qwen38-flash-next-mtp)). Start script: [`scripts/serve_qwen38_flash_next_mtp.sh`](scripts/serve_qwen38_flash_next_mtp.sh) with two modes.
+* Single user with the model's MTP head (3 draft tokens per step): **166.9 tok/s thinking off / 153.8 thinking on**, against 104.9 without MTP. GSM8K 489/500 (reference 485–491).
+* MTP only helps at low concurrency: from ~6 concurrent requests up, MTP off is faster (16 requests: 622 vs 422 tok/s aggregate). Use `MODE=interactive` for 1–4 users and `MODE=batch` above that.
+* Report: [`Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp.md`](Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp.md) (measured 9/30 with paired A/B screens; the 12-tier rc9 report still covers batch serving).
+
 **9/7/2026 Update — Qwen3.8-Flash-Next (180B MoE, GPTQ-4bit) final release: rc9**
 * Image `btbtyler09/vllm-rocm-gfx908:v0.28.0rc9.dev-q38fn` (vLLM v0.28 + gfx908 decode path: W4A8/W8A16 HIP GEMVs, fused GDN/QSA/PLE decode glue, push all-reduce over xGMI with fused producer/consumer, radix sampler, HIP graphs). Start script: [`scripts/serve_qwen38_flash_next.sh`](scripts/serve_qwen38_flash_next.sh).
 * 4x MI100 at 200 W: **c=1 107.5 tok/s (9.4 ms TPOT)**, c=16 542, c=64 567, 16K-context c=4 138 tok/s (TTFT 9.0 s); GSM8K 1281/1319, PPL 3.138 (== the bf16 reference). Bring-up was 17.5 tok/s at c=1 on 9/2.
@@ -196,6 +202,7 @@ Pre-quantized models on HuggingFace:
 
 | Tag | vLLM Version | AITER | Notes |
 |-----|-------------|-------|-------|
+| `v0.28.0rc10.dev-q38fn-mtp` | 0.28.0 (fork `qwen38-flash-next-mtp`) | Yes | **Qwen3.8-Flash-Next with MTP** — single-user 167 tok/s with MTP K=3; use `scripts/serve_qwen38_flash_next_mtp.sh` (interactive or batch mode) |
 | `v0.28.0rc9.dev-q38fn` | 0.28.0 (fork `qwen38-flash-next`) | Yes | **Qwen3.8-Flash-Next final** — gfx908 decode path (HIP GEMVs, fused glue, push AR, HIP graphs); use `scripts/serve_qwen38_flash_next.sh` |
 | `latest` / `v0.21.0rc1.dev-aitersync` | 0.21.0rc1.dev | Yes (439-commit sync, `395f84533`) | **Latest** — UA state-corruption fixed; UA faster than Triton for dense GPTQ-8 + MTP. TRITON_ATTN still default. ROCm 7.2.3 |
 | `v0.21.0rc1.dev` | 0.21.0rc1.dev | Yes (pre-sync) | Historical — v0.21 upstream sync before the AITER UA fix |
