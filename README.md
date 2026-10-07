@@ -10,6 +10,7 @@ vLLM officially supports MI200 and MI300 series GPUs, but older cards like the M
 * Single user with the model's MTP head (3 draft tokens per step): **166.9 tok/s thinking off / 153.8 thinking on**, against 104.9 without MTP. GSM8K 489/500 (reference 485–491).
 * MTP only helps at low concurrency: from ~6 concurrent requests up, MTP off is faster (16 requests: 622 vs 422 tok/s aggregate). Use `MODE=interactive` for 1–4 users and `MODE=batch` above that.
 * Report: [`Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp.md`](Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp.md) (measured 9/30 with paired A/B screens; the 12-tier rc9 report still covers batch serving).
+* 10/7: full 12-tier BenchAndReport of the released image in `MODE=interactive`, 200 W cap: [`Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp_12tier.md`](Model_Reports/benchmark_Qwen3.8-Flash-Next-GPTQ-4bit_mtp_12tier.md) (single user 123 tok/s, decode stress 157 tok/s, 16K context c=4 146 tok/s; aggregate tops out near 330 tok/s, where `MODE=batch` is the better choice).
 
 **9/7/2026 Update — Qwen3.8-Flash-Next (180B MoE, GPTQ-4bit) final release: rc9**
 * Image `btbtyler09/vllm-rocm-gfx908:v0.28.0rc9.dev-q38fn` (vLLM v0.28 + gfx908 decode path: W4A8/W8A16 HIP GEMVs, fused GDN/QSA/PLE decode glue, push all-reduce over xGMI with fused producer/consumer, radix sampler, HIP graphs). Start script: [`scripts/serve_qwen38_flash_next.sh`](scripts/serve_qwen38_flash_next.sh).
