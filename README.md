@@ -1,6 +1,8 @@
 # mi100-llm-testing
 This is a repository for documenting the setup and performance of MI100s in popular inference engines.
 
+Hardware: the 4× MI100 test system is a Lenovo ThinkStation P620 with a bolt-on chassis for the cards and a server PSU. The Fusion 360 design is in [`hardware/`](hardware/README.md).
+
 # vLLM
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
