@@ -3,6 +3,8 @@ This is a repository for documenting the setup and performance of MI100s in popu
 
 Hardware: the 4× MI100 test system is a Lenovo ThinkStation P620 with a bolt-on chassis for the cards and a server PSU. The Fusion 360 design is in [`hardware/`](hardware/README.md).
 
+Agent skills: [`skills/`](skills/README.md) has MI100 (gfx908) add-ons for four of AMD's [agent skills](https://github.com/amd/skills) (TraceLens, Magpie, Quark install/PTQ): measured MI100 roofline constants (4 cards, stock 290 W: fp16 123.7 / bf16 65.8 TFLOPS, HBM 926 GB/s, plus a 100–290 W power curve), what works on gfx908, and the Quark verdict (useful quality reference; GPTQModel stays the serving path).
+
 # vLLM
 
 vLLM officially supports MI200 and MI300 series GPUs, but older cards like the MI100 (gfx908) are not officially supported. With some modifications it is possible to run vLLM on these GPUs. The MI100 lacks FP8/FP4 hardware and is incompatible with Composable Kernel (CK) ops, but Triton-based kernels work well.
