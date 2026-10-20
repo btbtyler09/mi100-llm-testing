@@ -1,0 +1,118 @@
+name: glm53-mi100-repo
+services:
+  glm53:
+    image: ${GLM53_IMAGE:-glm53-flash-mi100:local}
+    pull_policy: never
+    container_name: ${GLM53_CONTAINER_NAME:-vllm-glm53-repo}
+    entrypoint: [vllm, serve]
+    restart: "${GLM53_RESTART:-unless-stopped}"
+    network_mode: host
+    ipc: host
+    group_add: [video, render]
+    devices:
+      - /dev/kfd:/dev/kfd
+      - ${GLM53_RENDER0:-/dev/dri/renderD128}:/dev/dri/renderD128
+      - ${GLM53_RENDER1:-/dev/dri/renderD129}:/dev/dri/renderD129
+      - ${GLM53_RENDER2:-/dev/dri/renderD130}:/dev/dri/renderD130
+      - ${GLM53_RENDER3:-/dev/dri/renderD131}:/dev/dri/renderD131
+      - ${GLM53_RENDER4:-/dev/dri/renderD132}:/dev/dri/renderD132
+      - ${GLM53_RENDER5:-/dev/dri/renderD133}:/dev/dri/renderD133
+      - ${GLM53_RENDER6:-/dev/dri/renderD134}:/dev/dri/renderD134
+      - ${GLM53_RENDER7:-/dev/dri/renderD135}:/dev/dri/renderD135
+    environment:
+      HIP_VISIBLE_DEVICES: "0,1,2,3,4,5,6,7"
+      VLLM_ROCM_USE_AITER: "1"
+      VLLM_USE_V2_MODEL_RUNNER: "1"
+      VLLM_USE_TRITON_AWQ: "1"
+      VLLM_GFX908_MOE_HIP: "0"
+      VLLM_GFX908_MOE_FP16_COMPUTE: "0"
+      VLLM_GFX908_SHARED_AS_EXPERT: "0"
+      VLLM_INDEXER_PAGED_Q_BF16: "0"
+      VLLM_INDEXER_LOGITS_MAXNREG: "0"
+      VLLM_INDEXER_LOGITS_FACTOR_K_SCALE: "0"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      DO_NOT_TRACK: "1"
+      HF_HOME: /cache/huggingface
+      XDG_CACHE_HOME: /cache/xdg
+      TRITON_CACHE_DIR: /cache/triton
+      MIOPEN_USER_DB_PATH: /cache/miopen
+      MIOPEN_CUSTOM_CACHE_DIR: /cache/miopen
+      VLLM_CACHE_ROOT: /cache/vllm
+      OMP_NUM_THREADS: "1"
+      GLM53_VALIDATE_LOGITS: "${GLM53_VALIDATE_LOGITS:-0}"
+      GLM53_GFX908_MHC: "1"
+      GLM53_GFX908_MHC_PROJECT: "1"
+      GLM53_GFX908_MHC_FUSE_NORM: "1"
+      GLM53_GFX908_ROUTER: "1"
+      GLM53_GFX908_SINGLE_GROUP: "${GLM53_GFX908_SINGLE_GROUP:-1}"
+      GLM53_GFX908_DIRECT_W4: "${GLM53_GFX908_DIRECT_W4:-1}"
+      GLM53_LINEAR_TOOL_TEMPLATE: "${GLM53_LINEAR_TOOL_TEMPLATE:-1}"
+    volumes:
+      - ${GLM53_MODEL_DIR:?set the checkpoint directory}:/model:ro
+      - ${GLM53_CACHE_DIR:?set the persistent cache directory}:/cache
+    command:
+      - /model
+      - --served-model-name
+      - glm53-flash-uncensored
+      - --reasoning-parser
+      - glm47
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - glm47
+      - --host
+      - ${GLM53_HOST:-127.0.0.1}
+      - --port
+      - "${GLM53_PORT:-8000}"
+      - --model-impl
+      - vllm
+      - --tensor-parallel-size
+      - "8"
+      - --distributed-executor-backend
+      - mp
+      - --dtype
+      - bfloat16
+      - --quantization
+      - compressed-tensors
+      - --moe-backend
+      - triton
+      - --attention-backend
+      - TRITON_MLA_SPARSE
+      - --kv-cache-dtype
+      - auto
+      - --max-model-len
+      - "${GLM53_MAX_MODEL_LEN:--1}"
+      - --max-num-batched-tokens
+      - "${GLM53_BATCH_TOKENS:-2560}"
+      - --max-num-seqs
+      - "${GLM53_MAX_NUM_SEQS:-2}"
+      - --long-prefill-token-threshold
+      - "${GLM53_LONG_PREFILL_TOKEN_THRESHOLD:-1280}"
+      - --gpu-memory-utilization
+      - "${GLM53_GPU_MEMORY_UTILIZATION:-0.95}"
+      - --cpu-offload-gb
+      - "0"
+      - --enable-chunked-prefill
+      - --enable-prefix-caching
+      - --mamba-cache-mode
+      - align
+      - --enable-prompt-tokens-details
+      - --language-model-only
+      - --compilation-config
+      - '{"mode":0,"cudagraph_mode":"FULL_DECODE_ONLY","cudagraph_capture_sizes":${GLM53_GRAPH_SIZES:-[1,2,4]}}'
+      - --speculative-config
+      - "${GLM53_SPECULATIVE_CONFIG:?load serving.env.example or set explicitly}"
+      - --disable-custom-all-reduce
+    stop_grace_period: 2m
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://${GLM53_HOST:-127.0.0.1}:${GLM53_PORT:-8000}/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30m
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "3"

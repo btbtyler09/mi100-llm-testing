@@ -1,0 +1,15 @@
+**
+!Dockerfile
+!LICENSE
+!source-lock.json
+!overlay-manifest.json
+!base-files.sha256
+!overlay/
+!overlay/**
+!scripts/
+!scripts/*.py
+!scripts/run-tests.sh
+!tests/
+!tests/test_*.py
+**/__pycache__
+**/*.pyc

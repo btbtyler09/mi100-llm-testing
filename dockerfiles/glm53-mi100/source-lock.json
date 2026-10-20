@@ -1,0 +1,24 @@
+{
+  "base_image": "btbtyler09/vllm-rocm-gfx908@sha256:3e9d1e5a128413c6f038d6ae7a073b3ca99fda3483303cdfe1791385ef8ae013",
+  "flash_source": "https://github.com/wtdcode/vllm-backport",
+  "flash_commit": "29e66dad461b11caae6039f510eaa7913f9dfb19",
+  "checkpoint_revision": "fb58f613c212bbe804794c7a4d2d6deb47d17f6f",
+  "packages": {
+    "vllm": "0.27.2rc1.dev682+g45eacfa4c.rocm724",
+    "torch": "2.12.0+git6bbd260",
+    "transformers": "5.16.1",
+    "compressed-tensors": "0.17.0",
+    "triton": "3.7.1+gitf0b55c07"
+  },
+  "checkpoint_metadata_sha256": {
+    "config.json": "d6c976a5004a6af6eafbb14b71ce0447f6757fcb8a415995d509d93b21896ab9",
+    "model.safetensors.index.json": "d0bf51853372093a37b49e782a1599d338faff1d758f1825fbd1b10a7fbf461f",
+    "tokenizer_config.json": "98b1271574f41abf89427ae2dda030d94dc9478f0edc5a8bd240db213c6fd5fc",
+    "chat_template.jinja": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+    "generation_config.json": "230c30609ecbbb9e6583bedde8e7bdda0c6eb8fe5fad0eaeb3d1b293d751cb4f"
+  },
+  "checkpoint_weight_bytes": 190810259328,
+  "tensor_count": 111346,
+  "payload_hashes_checked": false,
+  "checkpoint_repository": "voska/GLM-5.3-Flash-Uncensored-W4A16"
+}
